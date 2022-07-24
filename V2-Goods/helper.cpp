@@ -99,9 +99,46 @@ void updateAgentBundles(unordered_set<int> LSComponentAgents, unordered_set<int>
     for(auto& i:LSComponentAgents) {
         agents[i].bundlePrice*=beta;
         agents[i].MBB = agents[i].MBB/beta;
+        // for(int j = 0; j < items.size(); j++) {
+        //     if(LSComponentItems.find(j)==LSComponentItems.end() && floatIsEqual(agents[i].MBB, agents[i].itemUtilityMap[j]/items[j].price, EPS))
+        //         agents[i].MBBItems.push_back(&items[j]);
+        // }
+    }
+
+    // populate MBB ratio for all agents
+    for(int i = 0; i < agents.size(); i++) {
+        float MBB = 0;
         for(int j = 0; j < items.size(); j++) {
-            if(LSComponentItems.find(j)==LSComponentItems.end() && floatIsEqual(agents[i].MBB, agents[i].itemUtilityMap[j]/items[j].price, EPS))
+            MBB = fmax(MBB, agents[i].itemUtilityMap[j]/items[j].price);
+        }
+        agents[i].MBB = MBB;
+    }
+
+    for(int i = 0; i < agents.size(); i++) {
+        agents[i].MBBItems.clear();
+        for(int j = 0; j < items.size(); j++) {
+            if(floatIsEqual(agents[i].MBB, agents[i].itemUtilityMap[j]/items[j].price, EPS)) {
                 agents[i].MBBItems.push_back(&items[j]);
+            } 
         }
     }
+}
+
+bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items) {
+    for(int i = 0; i < agents.size(); i++) {
+        for(int k = 0; k < agents.size(); k++) {
+
+            float maxPrice = numeric_limits<float>::min();
+            for(ItemNodes* item:agents[k].allocationItems) {
+                maxPrice = fmax(maxPrice, item->price);
+            }
+
+
+            if(agents[i].bundlePrice < (agents[k].bundlePrice - maxPrice) && floatIsEqual(agents[i].bundlePrice, agents[k].bundlePrice-maxPrice, EPS)==false )
+                return false;
+
+        }
+    }
+    
+    return true;
 }

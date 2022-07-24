@@ -3,7 +3,7 @@ using namespace std;
 
 int main() {
     ofstream myfile;
-    for(int i = 0; i < 5; i++) {
+    for(int i = 0; i < 1000; i++) {
         srand(i);
         string fileName = "utilities" + to_string(i) + ".txt";
         myfile.open (fileName);
@@ -12,7 +12,7 @@ int main() {
         myfile << n << " " << m << endl;
         for(int j = 0; j < m; j++) {
             for(int i = 0; i < n; i++) {
-                int vij = rand() % 15 + 1;
+                int vij = (rand() % 15 + 1)*10000000;
                 myfile << vij << " ";
             }
             myfile << endl;

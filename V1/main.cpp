@@ -5,10 +5,10 @@ using namespace std;
 
 int main() 
 {
-
-    // initialize n - agents (iterator-> i), m - items (iterator-> j)
     int samples = 5, iteration = 0;
     while(iteration < samples) {
+
+        // initialize n - agents (iterator-> i), m - items (iterator-> j)
         int n, m;
         string fileName = "utilities" + to_string(iteration) + ".txt";
         ifstream agentUtilities(fileName);
@@ -18,17 +18,14 @@ int main()
 
         // populate item Utility map and determine price of each item
         for(int j = 0; j < m; j++) {
-            ItemNodes *item = new ItemNodes();
+            float itemPrice = 0;
             for(int i = 0; i < n; i++) {
-                if(j==0) {
-                    AgentNodes *agent = new AgentNodes();
-                    agents[i] = *agent;
-                    agents[i].index = i;
-                }
+                agents[i].index = i;
                 agents[i].itemUtilityMap.push_back(0);
                 agentUtilities >> agents[i].itemUtilityMap[j];
-                items[j].price = fmax(items[j].price, agents[i].itemUtilityMap[j]);
-            };
+                itemPrice = fmax(itemPrice, agents[i].itemUtilityMap[j]);
+            }
+            items[j].price = itemPrice;
             items[j].index = j;
         }
 
@@ -76,7 +73,7 @@ int main()
             int path_found = 1; //denotes if path was found in the coming step or not
             unordered_set<int> leastSpenderComponentAgents, leastSpenderComponentItems; 
             while(1) {
-                queue<Nodes*> q;
+                queue<pair<int, string>> q;
                 vector<int> visitedAgent(n,0), visitedItem(m,0);
                 vector<int> predAgentToItem(m,-1), predItemToAgent(n,0); //predAgent = preceding agent to an item
                 // int alternate_flag = 0; //denoted whether to find an MBB item or aloctaed agent
@@ -92,27 +89,27 @@ int main()
                     leastSpenderComponentItems.clear();
                 }
                 // else if no path was found but there exists multiple lease spenders move to next LS
-                else 
+                else {
                     leastSpenders.erase(leastSpenders.begin());
+                }
 
                 int LS = leastSpenders[0];
                 int pathViolater = -1, itemViolater = -1;
-                Nodes* node = &agents[LS];
-                q.push(node);
+                q.push({LS,"Agent"});
                 visitedAgent[LS] = 1;
                 leastSpenderComponentAgents.insert(LS);
 
                 // 3. -> while there exists something to explore-----------------------------------3.
                 while(!q.empty()) {
                     // alternate floag = 0 -> search for MBB items
-                    if(q.front()->type=="AgentNode") {
-                        AgentNodes* temp = dynamic_cast<AgentNodes*>(q.front());
+                    if(q.front().second=="Agent") {
+                        int temp = q.front().first;
                         q.pop();
-                        for(ItemNodes* item:temp->MBBItems) {
+                        for(ItemNodes* item:agents[temp].MBBItems) {
                             int j = item->index;
-                            if(visitedItem[j]==0 && (item->allocatedAgent)!=(temp->index)) {
-                                predAgentToItem[j] = temp->index;
-                                q.push(item);
+                            if(visitedItem[j]==0 && items[j].allocatedAgent!=temp) {
+                                predAgentToItem[j] = temp;
+                                q.push({j,"Item"});
                                 visitedItem[j] = 1;
                                 leastSpenderComponentItems.insert(j);
 
@@ -121,22 +118,21 @@ int main()
                         // alternate_flag = 1;
                     }
                     // alternate floag = 1 -> search for agent to which item is allocated
-                    else if(q.front()->type=="ItemNode") {
-                        ItemNodes* item = dynamic_cast<ItemNodes*>(q.front());
-                        // int temp = q.front().first;
+                    else if(q.front().second=="Item") {
+                        int temp = q.front().first;
                         q.pop();
-                        int i = item->allocatedAgent;
+                        int i = items[temp].allocatedAgent;
                         if(visitedAgent[i]==0) {
-                            predItemToAgent[i] = item->index;
-                            q.push(&agents[i]);
+                            predItemToAgent[i] = temp;
+                            q.push({i,"Agent"});
                             visitedAgent[i] = 1;
                             leastSpenderComponentAgents.insert(i);
-                            if( minBundlePrice < (agents[i].bundlePrice - item->price) ) {
+                            if( minBundlePrice < (agents[i].bundlePrice - items[temp].price) ) {
                                 cout << "----> Path Violator Found" << endl;
-                                cout << "Path Violater -> Agent - " << i << "; Item - " << item->index << endl; 
+                                cout << "Path Violater -> Agent - " << i << "; Item - " << temp << endl; 
                                 pathViolater = i;
-                                itemViolater = item->index;
-                                leastSpenderComponentItems.insert(item->index);
+                                itemViolater = temp;
+                                leastSpenderComponentItems.insert(temp);
                                 break;
                             }
                         }
@@ -148,7 +144,22 @@ int main()
 
                 // transfer item to pred[itemViolater] from pathViolater and update bundle prices if a path violater is found
                 if(pathViolater!=-1) {
-                    transferItem(itemViolater, pathViolater, predAgentToItem[itemViolater], agents, items);
+                    cout << "----> Transferring item to Agent " << predAgentToItem[itemViolater] << endl;
+                    // add item to 2nd last agent
+                    agents[predAgentToItem[itemViolater]].allocationItems.push_back(&items[itemViolater]);
+                    agents[predAgentToItem[itemViolater]].bundlePrice+=items[itemViolater].price;
+                    // remove items from path violaters bundle 
+                    for (auto iter = agents[pathViolater].allocationItems.begin(); iter != agents[pathViolater].allocationItems.end(); ++iter) {
+                        if(*iter==&items[itemViolater]) {
+                            agents[pathViolater].allocationItems.erase(iter);
+                            agents[pathViolater].bundlePrice-=items[itemViolater].price;
+                            break;
+                        }
+                    }
+                     
+                    //update allocatedAgent for the item transferred
+                    items[itemViolater].allocatedAgent = predAgentToItem[itemViolater];
+                    printAgentAllocationMBB(agents);
                     path_found = 1;
                 }
                 // check if no path found and there exists another least spender.
@@ -157,6 +168,7 @@ int main()
                     path_found = 0;
                 }
                 else if(q.empty()) {
+                    // ------------------------------------------------------------------------------------------------------------2.
 
                     // estimate EFMaxBundlePrice
                     EFMaxBundlePrice = findEFMaxBundlePrice(agents, items);
@@ -174,6 +186,7 @@ int main()
 
                         // Add items allocated to least spender also in the Component
                         for(int i:leastSpenderComponentAgents) {
+                            cout << "Adding Allocation items of LS " << i << endl;
                             for(ItemNodes* item: agents[i].allocationItems) {
                                 leastSpenderComponentItems.insert(item->index);
                             }
@@ -184,19 +197,44 @@ int main()
                         printIntSet(leastSpenderComponentAgents);
                         cout << "LS Component: Items -> ";
                         printIntSet(leastSpenderComponentItems);
+                        float alpha1 = numeric_limits<float>::max();
+                        float alpha2 = numeric_limits<float>::max();
 
                         // compute alpha 1, alpha 2 and beta
-                        float alpha1 = computeAlpha1(leastSpenderComponentAgents, leastSpenderComponentItems, agents, items);
-                        float alpha2 = computeAlpha2(leastSpenderComponentAgents, agents, minBundlePrice);
-                        float beta = fmin(alpha1, alpha2);
+                        for(auto& i:leastSpenderComponentAgents) {
+                            for(int j = 0; j < m; j++) {
+                                if(leastSpenderComponentItems.find(j)==leastSpenderComponentItems.end())
+                                    alpha1 = fmin(alpha1, (agents[i].MBB)*(items[j].price)/agents[i].itemUtilityMap[j]);
+                            }
+                        }
+                        // for(auto& i:bundlePriceToAgentMap.at(minBundlePrice)) {
+                        for(int i = 0; (i < n) ; i++) {
+                            if(floatIsEqual(agents[i].bundlePrice, minBundlePrice, EPS)) {
+                                for(int h = 0; h < n; h++) {
+                                    if( leastSpenderComponentAgents.find(h)==leastSpenderComponentAgents.end() )
+                                        alpha2 = fmin(alpha2, (agents[h].bundlePrice)/agents[i].bundlePrice);
+                                }
+                            }
+                        }
                         cout << "Alpha 1 -> " << alpha1 << "; Alpha 2 -> " << alpha2 << endl;
+                        float beta = fmin(alpha1, alpha2);
                         cout << "----> Increasing Price of LS Component by beta = " << beta << endl;
                         
                         // raise the prices of all items in the Least Spender component
-                        updateItemPrices(leastSpenderComponentItems, items, beta);
+                        for(int j = 0; j < m; j++) {
+                            if(leastSpenderComponentItems.find(j)!=leastSpenderComponentItems.end())
+                                items[j].price*=beta;
+                        }
 
-                        // update bundles of LS component Agents
-                        updateAgentBundles(leastSpenderComponentAgents, leastSpenderComponentItems, agents, items, beta);
+                        // multiply the bundle price of each least spender agent by beta,  update MBB ratio of all least spender component agents to 1/beta
+                        for(auto& i:leastSpenderComponentAgents) {
+                            agents[i].bundlePrice*=beta;
+                            agents[i].MBB = agents[i].MBB/beta;
+                            for(int j = 0; j < m; j++) {
+                                if(leastSpenderComponentItems.find(j)==leastSpenderComponentItems.end() && floatIsEqual(agents[i].MBB, agents[i].itemUtilityMap[j]/items[j].price, EPS))
+                                    agents[i].MBBItems.push_back(&items[j]);
+                            }
+                        }
 
                         printRevisedPrices(items);
                     }
@@ -204,17 +242,19 @@ int main()
                     printAgentAllocationMBB(agents);
                 }
             }
-            // -------------------------------------------------------------------------------------------------------------2.
             
+
             //redefine minimum Price Bundle and EFMax Bundle Price
             minBundlePrice = findMinBundlePrice(agents);
             EFMaxBundlePrice = findEFMaxBundlePrice(agents, items);
+            cout << "Big Spenders EFMax Bundle Price: " << EFMaxBundlePrice << endl;
+            cout << "Least Spenders Bundle Price: " << minBundlePrice << endl;
         }
         // -----------------------------------------------------------------------------------------------------------------------------------------------------1.
 
         cout << endl << "------ Allocation is now pEF1+fPO -------" << endl << endl;
         printAgentAllocationMBB(agents);
-
+    
     iteration++;
     }
 

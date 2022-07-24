@@ -2,8 +2,8 @@
 using namespace std;
 
 const char separator    = ' ';
-const int nameWidth     = 6;
-const int numWidth      = 6;
+const int nameWidth     = 11;
+const int numWidth      = 11;
 
 class Nodes {
     public:
@@ -18,10 +18,10 @@ class Nodes {
 };
 class ItemNodes: public Nodes {
     public:
-        float price;
+        double price;
         int allocatedAgent;
         ItemNodes() : Nodes() {
-            price = 0;
+            price = numeric_limits<double>::max();
             allocatedAgent = {};
             type = "ItemNode";
         }
@@ -31,9 +31,9 @@ class ItemNodes: public Nodes {
 };
 class AgentNodes: public Nodes {
     public: 
-        vector<float> itemUtilityMap;
-        float bundlePrice;
-        float MBB;
+        vector<double> itemUtilityMap;
+        double bundlePrice;
+        double MBB;
         vector<ItemNodes*> allocationItems;
         vector<ItemNodes*> MBBItems;
 
@@ -68,20 +68,22 @@ class AgentNodes: public Nodes {
         
 };
 
-bool floatIsEqual(float v1, float v2, float epsilon);
+bool doubleIsEqual(double v1, double v2, double epsilon);
 
-float findMinBundlePrice(vector<AgentNodes> agents);
+double findMinBundlePrice(vector<AgentNodes> agents);
 
-vector<int> findLeastSpenders( vector<AgentNodes> agents, float minBundlePrice);
+vector<int> findLeastSpenders( vector<AgentNodes> agents, double minBundlePrice);
 
-float findEFMaxBundlePrice(vector<AgentNodes> agents, vector<ItemNodes> items);
+double findEFMaxBundlePrice(vector<AgentNodes> agents, vector<ItemNodes> items);
 
-float computeAlpha1(unordered_set<int> LSComponentAgents, unordered_set<int> LSComponentItems, vector<AgentNodes> agents, vector<ItemNodes> items);
+double computeAlpha1(unordered_set<int> LSComponentAgents, unordered_set<int> LSComponentItems, vector<AgentNodes> agents, vector<ItemNodes> items);
 
-float computeAlpha2(unordered_set<int> LSComponentAgents,  vector<AgentNodes> agents, float minBundlePrice);
+double computeAlpha2(unordered_set<int> LSComponentAgents,  vector<AgentNodes> agents, double minBundlePrice);
 
-void updateItemPrices(unordered_set<int> LSComponentItems, vector<ItemNodes> &items, float beta);
+void updateItemPrices(unordered_set<int> LSComponentItems, vector<ItemNodes> &items, double beta);
 
-void updateAgentBundles(unordered_set<int> LSComponentAgents, unordered_set<int> LSComponentItems, vector<AgentNodes> &agents, vector<ItemNodes> &items, float beta);
+void updateAgentBundles(unordered_set<int> LSComponentAgents, unordered_set<int> LSComponentItems, vector<AgentNodes> &agents, vector<ItemNodes> &items, double beta);
 
 void transferItem(int itemToTransfer, int transferFromAgent, int tranferToAgent, vector<AgentNodes> &agents, vector<ItemNodes> &items);
+
+bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items);

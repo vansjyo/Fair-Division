@@ -68,6 +68,8 @@ class AgentNodes: public Nodes {
         
 };
 
+void generateSample(int seed, string distribution_type, vector<double> parameters, vector<AgentNodes> &agents, vector<ItemNodes> &items, ofstream &sampleFile);
+
 bool doubleIsEqual(double v1, double v2, double epsilon);
 
 double findMinBundlePrice(vector<AgentNodes> agents);

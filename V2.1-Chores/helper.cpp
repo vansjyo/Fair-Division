@@ -1,6 +1,67 @@
 #include <bits/stdc++.h>
+#include <pcg_random.hpp>
 #include "helper.h"
 #define EPS 0.00001f
+
+void generateSample(int seed, string distribution_type, vector<double> parameters, vector<AgentNodes> &agents, vector<ItemNodes> &items, ofstream &sampleFile) {
+
+    // set values
+
+    // populate item Utility map and determine price of each item
+    vector<int> init_values(items.size(),0);
+
+    //define lambda function
+    auto generate = [&] (auto rng, auto rnd_gen) {
+        for(int j = 0; j < items.size(); j++) {
+            ItemNodes *item = new ItemNodes();
+            for(int i = 0; i < agents.size(); i++) {
+                if(j==0) {
+                    AgentNodes *agent = new AgentNodes();
+                    agents[i] = *agent;
+                    agents[i].index = i;
+                }
+                agents[i].itemUtilityMap.push_back(0);
+                int vij = ((init_values[j]==0)?(rng(rnd_gen)*10000000):(rng(rnd_gen)*200)) + init_values[j];                
+                sampleFile << vij << " ";
+                
+                agents[i].itemUtilityMap[j] = (double) vij;
+                items[j].price = fmin(items[j].price, agents[i].itemUtilityMap[j]);
+            }
+            sampleFile << endl;
+            items[j].index = j;
+        }
+    };
+    
+    if(distribution_type == "uniform") {
+        // set parameters = [range_start, range_end]
+        pcg32 rnd_gen(seed);
+        std::uniform_int_distribution<int> rng((int) parameters[0], (int) parameters[1]);
+        generate(rng, rnd_gen);
+    }
+    else if(distribution_type == "exponential") {
+        // set parameters = [exponential_distribution_lambda]
+        std::random_device rd; 
+        std::mt19937 rnd_gen(rd ());
+        std::exponential_distribution<> rng (parameters[0]);
+        generate(rng, rnd_gen);
+    }
+    else if(distribution_type == "similar") {
+        // set parameters = [standard_deviation_range_start, standard_deviation_range_end]
+        pcg32 rnd_gen(seed);
+        std::uniform_int_distribution<int> rng((int) parameters[0], (int) parameters[1]);
+        for(int i = 1; i <= init_values.size(); i++) 
+            init_values[i-1] = (i)*5000000;
+        generate(rng, rnd_gen);
+    }
+    else if(distribution_type=="normal") {
+        // set parameters = [mean, std]
+        std::random_device rd{};
+        std::mt19937 rnd_gen{rd()};
+        std::normal_distribution<> rng{parameters[0], parameters[1]};
+        generate(rng, rnd_gen);
+    }  
+    return;
+}
 
 bool doubleIsEqual(double v1, double v2, double epsilon) {
     if(abs(v2-v1)<epsilon)

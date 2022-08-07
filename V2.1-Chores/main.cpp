@@ -9,7 +9,9 @@ int main()
 
     int samples = 30000, iteration = 0;
     ofstream logfile;
+    ofstream sampleFile;
     logfile.open("Log.txt");
+    sampleFile.open("Samples.txt");
     logfile << "Iteration" << " " << "Agents" << " " << "Items" << " " << "Duration" << " " << "Price_Rise_Steps" << " " << "Tranfer_Steps" << endl;
 
     while(iteration < samples) {
@@ -19,38 +21,41 @@ int main()
         auto start = std::chrono::high_resolution_clock::now();
 
         // initialize n - agents (iterator-> i), m - items (iterator-> j)
-        // srand(iteration);
-        // PCG Random Generator
         pcg32 rng(iteration);
         std::uniform_int_distribution<int> uniform_dist_agent(1, 50);
-        std::uniform_int_distribution<int> uniform_dist_item(1, 100);
-        std::uniform_int_distribution<int> uniform_dist_value(1, 100);
-        int n = uniform_dist_agent(rng); //% 100 + 2; 
-        int m = uniform_dist_item(rng); //% 400 + 1;
+        std::uniform_int_distribution<int> uniform_dist_item(50, 150);
+
+        // define inputs
+        int n = uniform_dist_agent(rng);
+        int m = uniform_dist_item(rng);
         int priceRiseSteps = 0;
         int tranferSteps = 0;
+        string dist_type = "similar";
+        vector<double> parameters;
+        if(dist_type == "uniform") {
+            parameters = {1, 100};
+        }
+        else if(dist_type == "exponential") {
+            double exp_dist_mean   = 1;
+            double exp_dist_lambda = 1 / exp_dist_mean;
+            parameters = {exp_dist_lambda};
+        }
+        else if(dist_type == "similar") {
+            parameters = {1,5};
+        }
+        else if(dist_type=="normal") {
+            parameters = {5,1};
+        }
+        
+        double exp_dist_mean   = 1;
+        double exp_dist_lambda = 1 / exp_dist_mean;
         logfile << iteration << " " << n << " " << m << " ";
 
+        // initialize the sample
         vector<AgentNodes> agents(n);
         vector<ItemNodes> items(m);
-
-        // populate item Utility map and determine price of each item
-        for(int j = 0; j < m; j++) {
-            ItemNodes *item = new ItemNodes();
-            for(int i = 0; i < n; i++) {
-                if(j==0) {
-                    AgentNodes *agent = new AgentNodes();
-                    agents[i] = *agent;
-                    agents[i].index = i;
-                }
-                agents[i].itemUtilityMap.push_back(0);
-                int vij = uniform_dist_value(rng)*10000000;
-                agents[i].itemUtilityMap[j] = (double) vij;
-                items[j].price = fmin(items[j].price, agents[i].itemUtilityMap[j]);
-            }
-            items[j].index = j;
-        }
-
+        generateSample(iteration, dist_type, parameters, agents, items, sampleFile);
+        
         // populate MBB ratio for all agents
         for(int i = 0; i < n; i++) {
             double MBB = numeric_limits<double>::max();
@@ -81,7 +86,7 @@ int main()
         }
 
         cout << "Number of Agents: " << n << "; Number of Items: " << m << endl;
-        // printUtilityMap(agents.size(), items.size(), agents, items);
+        printUtilityMap(agents.size(), items.size(), agents, items);
 
         // print Least Spenders given minimum bundle price
         vector<int> leastSpenders = findLeastSpenders(agents, minBundlePrice);
@@ -271,6 +276,7 @@ int main()
         iteration++;
     }
     logfile.close();
+    sampleFile.close();
 
     return 0;
 }

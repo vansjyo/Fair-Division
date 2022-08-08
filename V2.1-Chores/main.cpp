@@ -6,62 +6,68 @@ using namespace std;
 
 int main() 
 {
+    // Define Inputs 
+    bool DEBUG = true;                    // DEBUG Mode ON - true / OFF - false
+    int samples = 30000, iteration = 0;   // number of samples to run the code for
+    string dist_type = "similar";         // distribution to generate valutions of agents from - set parameters below
+    vector<double> parameters;
+    if(dist_type == "uniform") 
+        parameters = {1, 100};            // [range_start, range_end]
+    else if(dist_type == "exponential")
+        parameters = {1};                 // [exponential_distribution_lambda]
+    else if(dist_type == "similar")
+        parameters = {1,5};               // [standard_deviation_range_start, standard_deviation_range_end]
+    else if(dist_type=="normal")
+        parameters = {5,1};               // [mean, std]
 
-    int samples = 30000, iteration = 0;
+    // defining log files
     ofstream logfile;
     ofstream sampleFile;
+    ofstream minBundlePriceFile;
+    ofstream EFMaxBundlePriceFile;
+
     logfile.open("Log.txt");
     sampleFile.open("Samples.txt");
+    minBundlePriceFile.open("MinBundlePrice.txt");
+    EFMaxBundlePriceFile.open("EFMaxBundlePrice.txt");
+
     logfile << "Iteration" << " " << "Agents" << " " << "Items" << " " << "Duration" << " " << "Price_Rise_Steps" << " " << "Tranfer_Steps" << endl;
 
+    // run until number of samples
     while(iteration < samples) {
-        cout << "Working on Sample Number " << iteration << endl;
+
+        (DEBUG)?(cout << "Working on Sample Number " << iteration << endl):(cout << "" << endl);
 
         // Get starting timepoint
         auto start = std::chrono::high_resolution_clock::now();
 
-        // initialize n - agents (iterator-> i), m - items (iterator-> j)
+        // Uniform RNG for number of agents and items
         pcg32 rng(iteration);
         std::uniform_int_distribution<int> uniform_dist_agent(1, 50);
         std::uniform_int_distribution<int> uniform_dist_item(50, 150);
 
-        // define inputs
+        // define inputs - initialize n - agents (iterator-> i), m - items (iterator-> j)
         int n = uniform_dist_agent(rng);
         int m = uniform_dist_item(rng);
+
+        // logging info
         int priceRiseSteps = 0;
         int tranferSteps = 0;
-        string dist_type = "similar";
-        vector<double> parameters;
-        if(dist_type == "uniform") {
-            parameters = {1, 100};
-        }
-        else if(dist_type == "exponential") {
-            double exp_dist_mean   = 1;
-            double exp_dist_lambda = 1 / exp_dist_mean;
-            parameters = {exp_dist_lambda};
-        }
-        else if(dist_type == "similar") {
-            parameters = {1,5};
-        }
-        else if(dist_type=="normal") {
-            parameters = {5,1};
-        }
-        
-        double exp_dist_mean   = 1;
-        double exp_dist_lambda = 1 / exp_dist_mean;
         logfile << iteration << " " << n << " " << m << " ";
+        minBundlePriceFile << iteration << " ";
+        EFMaxBundlePriceFile << iteration << " ";
 
-        // initialize the sample
+        // initialize and generate the sample
         vector<AgentNodes> agents(n);
         vector<ItemNodes> items(m);
+        DEBUG?(cout << "Generating Example... " <<  endl):(cout << "");
         generateSample(iteration, dist_type, parameters, agents, items, sampleFile);
         
         // populate MBB ratio for all agents
         for(int i = 0; i < n; i++) {
             double MBB = numeric_limits<double>::max();
-            for(int j = 0; j < m; j++) {
+            for(int j = 0; j < m; j++)
                 MBB = fmin(MBB, agents[i].itemUtilityMap[j]/items[j].price);
-            }
             agents[i].MBB = MBB;
         }
 
@@ -90,18 +96,18 @@ int main()
 
         // print Least Spenders given minimum bundle price
         vector<int> leastSpenders = findLeastSpenders(agents, minBundlePrice);
-        // cout << "Least Spenders" << " -> ";
-        // printIntVector(leastSpenders);
+        DEBUG?(cout << "Least Spenders" << " -> "):(cout << "");
+        DEBUG?(printIntVector(leastSpenders)):(printIntVector({}));
 
         // print inital allocation
-        // printAgentAllocationMBB(agents);
-        // printRevisedPrices(items);
-        // cout << endl;
+        DEBUG?(printAgentAllocationMBB(agents)):(printIntVector({}));
+        DEBUG?(printRevisedPrices(items)):(printIntVector({}));
+        DEBUG?(cout << endl):(cout<< "");
 
         // estimate EFMaxBundlePrice
         double EFMaxBundlePrice = findEFMaxBundlePrice(agents, items);
-        // cout << "Least Spenders Bundle Price: " << minBundlePrice << endl;
-        // cout << "Big Spender EFMax Bundle Price: " << EFMaxBundlePrice << endl;
+        DEBUG?(cout << "Least Spenders Bundle Price: " << minBundlePrice << endl):(cout<< "");
+        DEBUG?(cout << "Big Spender EFMax Bundle Price: " << EFMaxBundlePrice << endl):(cout<< "");
 
 
         // 1.-> Do BFS with Least Spender as source to find path violator----------------------------------------------------------------------------------------1.
@@ -122,15 +128,19 @@ int main()
                 if(path_found) {
                     minBundlePrice = findMinBundlePrice(agents);
                     EFMaxBundlePrice = findEFMaxBundlePrice(agents, items);
-                    // cout << "Big Spenders EFMax Bundle Price: " << EFMaxBundlePrice << endl;
-                    // cout << "Least Spenders Bundle Price: " << minBundlePrice << endl;
+                    DEBUG?(cout << "Big Spenders EFMax Bundle Price: " << EFMaxBundlePrice << endl):(cout<< "");
+                    DEBUG?(cout << "Least Spenders Bundle Price: " << minBundlePrice << endl):(cout<< "");
+
+                    minBundlePriceFile << minBundlePrice << " ";
+                    EFMaxBundlePriceFile << EFMaxBundlePrice << " ";
+
                     if( (minBundlePrice > EFMaxBundlePrice) || doubleIsEqual(minBundlePrice, EFMaxBundlePrice, EPS)==true ) {
                         cout << "Allocation is pEF1+PO" << endl;
                         break;
                     }
                     leastSpenders = findLeastSpenders(agents, minBundlePrice);
-                    // cout << "Least Spenders -> ";
-                    // printIntVector(leastSpenders);
+                    DEBUG?(cout << "Least Spenders -> "):(cout<< "");
+                    DEBUG?(printIntVector(leastSpenders)):(printIntVector({}));
                     leastSpenderComponentAgents.clear();
                     leastSpenderComponentItems.clear();
                 }
@@ -140,8 +150,6 @@ int main()
                 }   
 
                 int LS = leastSpenders[0];
-                // if(next_spender==1 || path_found==1) cout << "Searching paths from LS " << LS << endl;
-                // else cout << "Creating component from LS " << LS << endl;
                 int pathViolater = -1, itemViolater = -1;
                 Nodes* node = &agents[LS];
                 q.push(node);
@@ -174,7 +182,7 @@ int main()
                             leastSpenderComponentAgents.insert(i);
                             if( path_found==1 && (minBundlePrice < (agents[i].bundlePrice - item->price)) && doubleIsEqual(minBundlePrice, agents[i].bundlePrice-item->price, EPS)==false ) {
                                 cout << "----> Path Violator Found" << endl;
-                                // cout << "Path Violater -> Agent - " << i << "; Item - " << item->index << endl; 
+                                DEBUG?(cout << "Path Violater -> Agent - " << i << "; Item - " << item->index << endl):(cout<< "");
                                 pathViolater = i;
                                 itemViolater = item->index;
                                 leastSpenderComponentItems.insert(item->index);
@@ -197,8 +205,8 @@ int main()
 
                     // estimate EFMaxBundlePrice
                     EFMaxBundlePrice = findEFMaxBundlePrice(agents, items);
-                    // cout << "Big Spenders EFMax Bundle Price: " << EFMaxBundlePrice << endl;
-                    // cout << "Least Spenders Bundle Price: " << minBundlePrice << endl;
+                    DEBUG?(cout << "Big Spenders EFMax Bundle Price: " << EFMaxBundlePrice << endl):(cout<< "");
+                    DEBUG?(cout << "Least Spenders Bundle Price: " << minBundlePrice << endl):(cout<< "");
 
                     // if pEF1 condition satisfied, come out of the loop and return the allocation
                     if((minBundlePrice > EFMaxBundlePrice) || doubleIsEqual(minBundlePrice, EFMaxBundlePrice, EPS)==true ) {
@@ -207,7 +215,7 @@ int main()
                     }
 
                     // else increase price of all items in LS component
-                    // cout << "----> No alternating path from LS agent " << LS << " -> Decreasing Prices" << endl;
+                    DEBUG?(cout << "----> No alternating path from LS agent " << LS << " -> Decreasing Prices" << endl):(cout<< "");
 
                     // Add items allocated to least spender also in the Component
                     for(int i:leastSpenderComponentAgents) {
@@ -217,23 +225,19 @@ int main()
                     }
 
                     // print the least spender component
-                    // cout << "LS Component: Agents -> ";
-                    // printIntSet(leastSpenderComponentAgents);
-                    // cout << "LS Component: Items -> ";
-                    // printIntSet(leastSpenderComponentItems);
+                    DEBUG?(cout << "LS Component: Agents -> "):(cout<< "");
+                    DEBUG?(printIntSet(leastSpenderComponentAgents)):(printIntVector({}));
+                    DEBUG?(cout << "LS Component: Items -> "):(cout<< "");
+                    DEBUG?(printIntSet(leastSpenderComponentItems)):(printIntVector({}));
 
                     // compute alpha 1, alpha 2 and beta
                     double alpha1 = computeAlpha1(leastSpenderComponentAgents, leastSpenderComponentItems, agents, items);
                     double alpha2 = computeAlpha2(leastSpenderComponentAgents, agents, minBundlePrice);
                     double beta = fmax(alpha1, 0);
                     cout << "Beta value is " << beta << endl;
-                    // if(doubleIsEqual(beta, numeric_limits<double>::min(), EPS)) {
-                    //     cout << "----> Cannot raise prices. Checking alternating paths from next LS" << endl;
-                    //     path_found = 0;
-                    //     continue;
-                    // }
-                    // cout << "Alpha 1 -> " << alpha1 << "; Alpha 2 -> " << alpha2 << endl;
-                    // cout << "----> Decreasing Price of LS Component by beta = " << beta << endl;
+
+                    DEBUG?(cout << "Alpha 1 -> " << alpha1 << "; Alpha 2 -> " << alpha2 << endl):(cout<< "");
+                    DEBUG?(cout << "----> Decreasing Price of LS Component by beta = " << beta << endl):(cout<< "");
                     
                     // raise the prices of all items in the Least Spender component
                     updateItemPrices(leastSpenderComponentItems, items, beta);
@@ -242,9 +246,9 @@ int main()
                     // update bundles of LS component Agents
                     updateAgentBundles(leastSpenderComponentAgents, leastSpenderComponentItems, agents, items, beta);
 
-                    // printRevisedPrices(items);
+                    DEBUG?(printRevisedPrices(items)):(printIntVector({}));
 
-                    // printAgentAllocationMBB(agents);
+                    DEBUG?(printAgentAllocationMBB(agents)):(printIntVector({}));
                     path_found = 1;
 
                 }
@@ -257,14 +261,18 @@ int main()
         }
         // -----------------------------------------------------------------------------------------------------------------------------------------------------1.
 
+        // capturing total runtime
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        logfile << duration.count() << " " << priceRiseSteps << " " << tranferSteps << endl;
 
+        // logging details
+        logfile << duration.count() << " " << priceRiseSteps << " " << tranferSteps << endl;
+        minBundlePriceFile << endl;
+        EFMaxBundlePriceFile << endl;
         cout << endl << "------ Allocation is now pEF1+fPO -------" << endl << endl;
         printAgentAllocationMBB(agents);
 
-        // FINAL BRUTE CHECK
+        // Final Brute Force Check for pEF1
         if(is_EF1_fPO(agents, items)==false) {
             cout << "ERROR - ALLOCATION INCORRECT" << endl;
             return 0;
@@ -275,8 +283,12 @@ int main()
             
         iteration++;
     }
+
+    // closing log files
     logfile.close();
     sampleFile.close();
+    minBundlePriceFile.close();
+    EFMaxBundlePriceFile.close();
 
     return 0;
 }

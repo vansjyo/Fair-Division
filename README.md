@@ -1,7 +1,7 @@
 # Fair-Division
 
 #### Description:
-The code is a modified implementation of this paper [https://dl.acm.org/doi/10.1145/3219166.3219176](https://dl.acm.org/doi/10.1145/3219166.3219176) and [https://ojs.aaai.org/index.php/AAAI/article/view/16703](https://ojs.aaai.org/index.php/AAAI/article/view/16703). 
+The code is a modified implementation of this paper [[https://dl.acm.org/doi/10.1145/3219166.3219176]](https://dl.acm.org/doi/10.1145/3219166.3219176) and [[https://ojs.aaai.org/index.php/AAAI/article/view/16703]](https://ojs.aaai.org/index.php/AAAI/article/view/16703). 
 * Different versions (folders) represent significant code structure changes or attempts at multiple modifications (see respective folder README.md). 
 * Codes for chores and goods have been separated.
 * For testing, we generate pseudorandom number generators for Uniform, Normal, Exponential and Similar (all agents have similar valuations for same item) distributions. This can be set in `main.cpp` along with required parameters for each.

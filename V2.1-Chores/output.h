@@ -12,6 +12,6 @@ void printIntSet(unordered_set<int> v);
 
 // void printAgentMBB(vector<ItemNodes*> v, int agent);
 
-void printAgentAllocationMBB(vector<AgentNodes> agents);
+void printAgentAllocationMBB(vector<AgentNodes> agents, vector<ItemNodes> items);
 
 void printRevisedPrices(vector<ItemNodes> items);

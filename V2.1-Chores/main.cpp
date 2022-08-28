@@ -8,8 +8,8 @@ int main()
 {
     // Define Inputs 
     bool DEBUG = true;                    // DEBUG Mode ON - true / OFF - false
-    int samples = 30000, iteration = 0;   // number of samples to run the code for
-    string dist_type = "similar";         // distribution to generate valutions of agents from - set parameters below
+    int samples = 30000, iteration = 1;  // number of samples to run the code for
+    string dist_type = "uniform";         // distribution to generate valutions of agents from - set parameters below
     vector<double> parameters;
     if(dist_type == "uniform") 
         parameters = {1, 100};            // [range_start, range_end]
@@ -25,11 +25,13 @@ int main()
     ofstream sampleFile;
     ofstream minBundlePriceFile;
     ofstream EFMaxBundlePriceFile;
+    ofstream minBundleValuationFile;
 
     logfile.open("Log.txt");
     sampleFile.open("Samples.txt");
     minBundlePriceFile.open("MinBundlePrice.txt");
     EFMaxBundlePriceFile.open("EFMaxBundlePrice.txt");
+    minBundleValuationFile.open("MinBundleValuation.txt");
 
     logfile << "Iteration" << " " << "Agents" << " " << "Items" << " " << "Duration" << " " << "Price_Rise_Steps" << " " << "Tranfer_Steps" << endl;
 
@@ -56,6 +58,7 @@ int main()
         logfile << iteration << " " << n << " " << m << " ";
         minBundlePriceFile << iteration << " ";
         EFMaxBundlePriceFile << iteration << " ";
+        minBundleValuationFile << iteration << " ";
 
         // initialize and generate the sample
         vector<AgentNodes> agents(n);
@@ -100,7 +103,7 @@ int main()
         DEBUG?(printIntVector(leastSpenders)):(printIntVector({}));
 
         // print inital allocation
-        DEBUG?(printAgentAllocationMBB(agents)):(printIntVector({}));
+        DEBUG?(printAgentAllocationMBB(agents, items)):(printIntVector({}));
         DEBUG?(printRevisedPrices(items)):(printIntVector({}));
         DEBUG?(cout << endl):(cout<< "");
 
@@ -150,6 +153,7 @@ int main()
                 }   
 
                 int LS = leastSpenders[0];
+                minBundleValuationFile << findMinBundleValuation(LS, agents) << " " << LS << " ; "; 
                 int pathViolater = -1, itemViolater = -1;
                 Nodes* node = &agents[LS];
                 q.push(node);
@@ -182,7 +186,8 @@ int main()
                             leastSpenderComponentAgents.insert(i);
                             if( path_found==1 && (minBundlePrice < (agents[i].bundlePrice - item->price)) && doubleIsEqual(minBundlePrice, agents[i].bundlePrice-item->price, EPS)==false ) {
                                 cout << "----> Path Violator Found" << endl;
-                                DEBUG?(cout << "Path Violater -> Agent - " << i << "; Item - " << item->index << endl):(cout<< "");
+                                DEBUG?(cout << "Path Violater -> Agent - " << i << "; Item - " << item->index << endl):(cout << "");
+                                // DEBUG?(cout << "Prev Item to Agent prev " << predItemToAgent[predAgentToItem[itemViolater]] << endl):(cout << "");
                                 pathViolater = i;
                                 itemViolater = item->index;
                                 leastSpenderComponentItems.insert(item->index);
@@ -195,10 +200,11 @@ int main()
 
                 // transfer item to pred[itemViolater] from pathViolater and update bundle prices if a path violater is found
                 if(pathViolater!=-1) {
+
                     transferItem(itemViolater, pathViolater, predAgentToItem[itemViolater], agents, items);
                     tranferSteps++;
 
-                    // printAgentAllocationMBB(agents);
+                    // printAgentAllocationMBB(agents, items);
                     path_found = 1;
                 }
                 else if(q.empty()) {
@@ -248,7 +254,7 @@ int main()
 
                     DEBUG?(printRevisedPrices(items)):(printIntVector({}));
 
-                    DEBUG?(printAgentAllocationMBB(agents)):(printIntVector({}));
+                    DEBUG?(printAgentAllocationMBB(agents, items)):(printIntVector({}));
                     path_found = 1;
 
                 }
@@ -269,8 +275,9 @@ int main()
         logfile << duration.count() << " " << priceRiseSteps << " " << tranferSteps << endl;
         minBundlePriceFile << endl;
         EFMaxBundlePriceFile << endl;
+        minBundleValuationFile << endl;
         cout << endl << "------ Allocation is now pEF1+fPO -------" << endl << endl;
-        printAgentAllocationMBB(agents);
+        printAgentAllocationMBB(agents, items);
 
         // Final Brute Force Check for pEF1
         if(is_EF1_fPO(agents, items)==false) {
@@ -289,6 +296,7 @@ int main()
     sampleFile.close();
     minBundlePriceFile.close();
     EFMaxBundlePriceFile.close();
+    minBundleValuationFile.close();
 
     return 0;
 }

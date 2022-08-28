@@ -28,7 +28,7 @@ void printIntSet(unordered_set<int> v) {
     cout << endl;
 }
 
-void printAgentAllocationMBB(vector<AgentNodes> agents) {
+void printAgentAllocationMBB(vector<AgentNodes> agents, vector<ItemNodes> items) {
     cout << endl << "---------- Allocations: ----------- " << endl;
 	for(int i = 0; i < agents.size(); i++) {
 		agents[i].printAgentAllocation();
@@ -38,26 +38,35 @@ void printAgentAllocationMBB(vector<AgentNodes> agents) {
 		agents[i].printAgentMBB();
 		// cout << "Bundle Price of Agent " << i << " -> " << agents[i].bundlePrice << endl;
 	}
-    cout << "------------- P(Xi): -------------- " << endl;
+    cout << " ------------- P(Xi): -------------- " << endl;
 	for(int i = 0; i < agents.size(); i++) {
         cout << left << setw(nameWidth) << setfill(separator) << to_string(i)+":[ " << setprecision(11) << agents[i].bundlePrice << " ]  ";
 	}
     cout << endl;
+    cout << " ------------- P(Xi - g_max): -------------- " << endl;
 
     for(int i = 0; i < agents.size(); i++) {
-        cout << "{";
-        for(int j = 0; j < agents[i].MBBItems.size(); j++) {
-            cout << (agents[i].MBBItems[j]->index)+100 << ", ";
-        // cout << left << setw(nameWidth) << setfill(separator) << items[j].price;
-	    }
-        cout << "}, ";
-	}
-    
+        double maxItemPrice = 0;
+        for(int j = 0; j < agents[i].allocationItems.size(); j++) {
+            int item = agents[i].allocationItems[j]->index;
+            maxItemPrice = fmax(maxItemPrice, items[item].price);
+        }
+        cout << left << setw(nameWidth) << setfill(separator) << to_string(i)+":[ " << setprecision(11) << agents[i].bundlePrice - maxItemPrice << " ]  ";
+    }
 
     cout << endl << "----------------------------------- " << endl << endl;
 }
 
 void printRevisedPrices(vector<ItemNodes> items) {
+    cout << "------------- P(j): -------------- " << endl;
+	for(int j = 0; j < items.size(); j++) {
+        cout << left << setw(nameWidth) << setfill(separator) << to_string(j)+":[ " << setprecision(11) << items[j].price << " ] ";
+        // cout << left << setw(nameWidth) << setfill(separator) << items[j].price;
+	}
+    cout << endl << "----------------------------------- " << endl << endl;
+}
+
+void printRevisedEFMaxPrices(vector<ItemNodes> items) {
     cout << "------------- P(j): -------------- " << endl;
 	for(int j = 0; j < items.size(); j++) {
         cout << left << setw(nameWidth) << setfill(separator) << to_string(j)+":[ " << setprecision(11) << items[j].price << " ] ";

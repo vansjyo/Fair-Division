@@ -89,3 +89,5 @@ void updateAgentBundles(unordered_set<int> LSComponentAgents, unordered_set<int>
 void transferItem(int itemToTransfer, int transferFromAgent, int tranferToAgent, vector<AgentNodes> &agents, vector<ItemNodes> &items);
 
 bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items);
+
+float findMinBundleValuation(int leastSpender, vector<AgentNodes> agents);

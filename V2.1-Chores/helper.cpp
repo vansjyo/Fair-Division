@@ -105,9 +105,9 @@ double findEFMaxBundlePrice(vector<AgentNodes> agents, vector<ItemNodes> items) 
 
 // tranfer the item to the 2nd last agent from path violator
 void transferItem(int itemToTransfer, int transferFromAgent, int transferToAgent, vector<AgentNodes> &agents, vector<ItemNodes> &items) {
-    // cout << "----> Transferring item to Agent " << transferToAgent << endl;
+    cout << "----> Transferring item to Agent " << transferToAgent << endl;
     // add item to 2nd last agent
-    // cout << std::setprecision(13) << "Check: " << agents[transferToAgent].bundlePrice << " " << items[itemToTransfer].price <<  " " << agents[transferToAgent].bundlePrice+items[itemToTransfer].price << endl;
+    cout << std::setprecision(13) << "Check: " << agents[transferToAgent].bundlePrice << " " << items[itemToTransfer].price <<  " " << agents[transferToAgent].bundlePrice+items[itemToTransfer].price << endl;
     agents[transferToAgent].allocationItems.push_back(&items[itemToTransfer]);
     agents[transferToAgent].bundlePrice+=items[itemToTransfer].price;
 
@@ -202,4 +202,12 @@ bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items) {
     }
     
     return true;
+}
+
+float findMinBundleValuation(int leastSpender, vector<AgentNodes> agents) {
+    float valuation = 0;
+    for(ItemNodes* item:agents[leastSpender].allocationItems) {
+        valuation+=agents[leastSpender].itemUtilityMap[item->index];
+    } 
+    return valuation;
 }

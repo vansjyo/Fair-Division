@@ -90,4 +90,4 @@ void transferItem(int itemToTransfer, int transferFromAgent, int tranferToAgent,
 
 bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items);
 
-float findMinBundleValuation(int leastSpender, vector<AgentNodes> agents);
+double findBundleValuation(int bundleAgent, int referenceAgent, vector<AgentNodes> agents);

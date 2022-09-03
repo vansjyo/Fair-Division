@@ -8,7 +8,7 @@ int main()
 {
     // Define Inputs 
     bool DEBUG = true;                    // DEBUG Mode ON - true / OFF - false
-    int samples = 30000, iteration = 1;  // number of samples to run the code for
+    int samples = 30000, iteration = 0;  // number of samples to run the code for
     string dist_type = "uniform";         // distribution to generate valutions of agents from - set parameters below
     vector<double> parameters;
     if(dist_type == "uniform") 
@@ -26,6 +26,7 @@ int main()
     ofstream minBundlePriceFile;
     ofstream EFMaxBundlePriceFile;
     ofstream minBundleValuationFile;
+    
 
     logfile.open("Log.txt");
     sampleFile.open("Samples.txt");
@@ -45,8 +46,8 @@ int main()
 
         // Uniform RNG for number of agents and items
         pcg32 rng(iteration);
-        std::uniform_int_distribution<int> uniform_dist_agent(1, 50);
-        std::uniform_int_distribution<int> uniform_dist_item(50, 150);
+        std::uniform_int_distribution<int> uniform_dist_agent(1, 10);
+        std::uniform_int_distribution<int> uniform_dist_item(1, 10);
 
         // define inputs - initialize n - agents (iterator-> i), m - items (iterator-> j)
         int n = uniform_dist_agent(rng);
@@ -59,6 +60,7 @@ int main()
         minBundlePriceFile << iteration << " ";
         EFMaxBundlePriceFile << iteration << " ";
         minBundleValuationFile << iteration << " ";
+        unordered_map<int, double> valuationMap;
 
         // initialize and generate the sample
         vector<AgentNodes> agents(n);
@@ -153,7 +155,24 @@ int main()
                 }   
 
                 int LS = leastSpenders[0];
-                minBundleValuationFile << findMinBundleValuation(LS, agents) << " " << LS << " ; "; 
+                double minBundleValuation = findBundleValuation(LS, LS, agents);
+                minBundleValuationFile << minBundleValuation << " " << LS << " ; ";
+                DEBUG?(cout << "Least Spenders " << LS << "'s Valuation " << minBundleValuation << endl):(cout<< "");
+                // insert the valuations in a map
+                if(valuationMap.find(LS)==valuationMap.end()) {
+                    valuationMap.insert({LS,minBundleValuation});
+                } 
+                else {
+                    double prevValuation = valuationMap.at(LS);
+                    if(prevValuation < minBundleValuation && doubleIsEqual(prevValuation, minBundleValuation, EPS)==false) {
+                        valuationMap.at(LS) = minBundlePrice;
+                    }
+                    else if(prevValuation > minBundleValuation && doubleIsEqual(prevValuation, minBundleValuation, EPS)==false) {
+                        cout << "Exited since Proof not satisfied prev: " << prevValuation << " now: " << minBundleValuation << endl;
+                        // return 0;
+                    }
+
+                }
                 int pathViolater = -1, itemViolater = -1;
                 Nodes* node = &agents[LS];
                 q.push(node);

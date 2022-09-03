@@ -185,6 +185,14 @@ void updateAgentBundles(unordered_set<int> LSComponentAgents, unordered_set<int>
     }
 }
 
+double findBundleValuation(int bundleAgent, int referenceAgent, vector<AgentNodes> agents) {
+    double valuation = 0;
+    for(ItemNodes* item:agents[bundleAgent].allocationItems) {
+        valuation+=agents[referenceAgent].itemUtilityMap[item->index];
+    } 
+    return valuation;
+}
+
 bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items) {
     for(int i = 0; i < agents.size(); i++) {
         for(int k = 0; k < agents.size(); k++) {
@@ -194,9 +202,24 @@ bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items) {
                 maxPrice = fmax(maxPrice, item->price);
             }
 
-
             if(agents[i].bundlePrice < (agents[k].bundlePrice - maxPrice) && doubleIsEqual(agents[i].bundlePrice, agents[k].bundlePrice-maxPrice, EPS)==false )
                 return false;
+        }
+    }
+
+    // 
+    for(int i = 0; i < agents.size(); i++) {
+        for(int k = 0; k < agents.size(); k++) {
+
+            double maxValuation = numeric_limits<double>::min();
+            for(ItemNodes* item:agents[i].allocationItems) {
+                maxValuation = fmax(maxValuation, agents[i].itemUtilityMap[item->index]);
+            }
+
+            if(findBundleValuation(i, i, agents) - maxValuation > findBundleValuation(k, i, agents) && doubleIsEqual(findBundleValuation(i, i, agents) - maxValuation, findBundleValuation(k, i, agents), EPS)==false ) {
+                cout << "Failed for agent " <<  i << "-" << findBundleValuation(i, i, agents)-maxValuation << " and agent " << k  << "-" << findBundleValuation(k, i, agents) << endl;
+                return false;
+            }
 
         }
     }
@@ -204,10 +227,4 @@ bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items) {
     return true;
 }
 
-float findMinBundleValuation(int leastSpender, vector<AgentNodes> agents) {
-    float valuation = 0;
-    for(ItemNodes* item:agents[leastSpender].allocationItems) {
-        valuation+=agents[leastSpender].itemUtilityMap[item->index];
-    } 
-    return valuation;
-}
+

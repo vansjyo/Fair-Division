@@ -62,7 +62,39 @@ void generateSample(int seed, string distribution_type, vector<double> parameter
     }  
     return;
 }
+        
+void populateInstance(vector<AgentNodes> &agents, vector<ItemNodes> &items, double &minBundlePrice) {
+    // populate MBB ratio for all agents
+    int n = agents.size();
+    int m = items.size();
+    for(int i = 0; i < n; i++) {
+        double MBB = numeric_limits<double>::max();
+        for(int j = 0; j < m; j++)
+            MBB = fmin(MBB, agents[i].itemUtilityMap[j]/items[j].price);
+        agents[i].MBB = MBB;
+    }
 
+    // populate MBB items, bundle price for every agent, an initial allocation and least spender's spending
+    for(int j = 0; j < m; j++) {
+        int allocated_flag = 0;
+        for(int i = 0; i < n; i++) {
+            if(doubleIsEqual(items[j].price, agents[i].itemUtilityMap[j], EPS)) {
+                if(allocated_flag==0) {
+                    agents[i].allocationItems.push_back(&items[j]);
+                    agents[i].bundlePrice+=items[j].price;
+                    items[j].allocatedAgent = i;
+                }
+                allocated_flag = 1;
+            } 
+            if(doubleIsEqual(agents[i].MBB, agents[i].itemUtilityMap[j]/items[j].price, EPS)) {
+                agents[i].MBBItems.push_back(&items[j]);
+            }   
+            minBundlePrice = (j==m-1)?fmin(minBundlePrice, agents[i].bundlePrice):minBundlePrice;
+        }
+    }
+}
+    
+// output true if two doubles are approximately equal
 bool doubleIsEqual(double v1, double v2, double epsilon) {
     if(abs(v2-v1)<epsilon)
         return true;
@@ -89,18 +121,60 @@ vector<int> findLeastSpenders(vector<AgentNodes> agents, double minBundlePrice) 
     return leastSpenders;
 }
 
-// find the Big Spender or agent who has highest utility after removing highest utility item from their bundle
-double findEFMaxBundlePrice(vector<AgentNodes> agents, vector<ItemNodes> items) {
+// find Big Spender's (agent with highest utility after removing highest utility item from their bundle) EFMAx Bundle Price or EFMax Bundle Price of agent
+double findEFMaxBundlePrice(vector<AgentNodes> agents, vector<ItemNodes> items, int agent) {
     double EFMaxBundlePrice = 0;
-    for(int i = 0; i < agents.size(); i++) {
+    // if agent is specified, find EFMax Bundle Price of agent
+    if(agent!=-1) {
         double maxItemPrice = 0;
-        for(int j = 0; j < agents[i].allocationItems.size(); j++) {
-            int item = agents[i].allocationItems[j]->index;
+        for(int j = 0; j < agents[agent].allocationItems.size(); j++) {
+            int item = agents[agent].allocationItems[j]->index;
             maxItemPrice = fmax(maxItemPrice, items[item].price);
         }
-        EFMaxBundlePrice = fmax(EFMaxBundlePrice, (agents[i].bundlePrice - maxItemPrice));
+        EFMaxBundlePrice = agents[agent].bundlePrice - maxItemPrice;
+    }
+    // else find EFMax Bundle Price of Big Spender
+    else {
+        for(int i = 0; i < agents.size(); i++) {
+            double maxItemPrice = 0;
+            for(int j = 0; j < agents[i].allocationItems.size(); j++) {
+                int item = agents[i].allocationItems[j]->index;
+                maxItemPrice = fmax(maxItemPrice, items[item].price);
+            }
+            EFMaxBundlePrice = fmax(EFMaxBundlePrice, (agents[i].bundlePrice - maxItemPrice));
+        }
     }
     return EFMaxBundlePrice;
+}
+
+double findEFMaxValuation(vector<AgentNodes> agents, vector<ItemNodes> items, int agent) {
+    double EFMaxValuation = 0;
+    // if agent is specified, find EFMax Valuation of agent
+    if(agent!=-1) {
+        double maxItemValuation = 0;
+        for(int j = 0; j < agents[agent].allocationItems.size(); j++) {
+            int item = agents[agent].allocationItems[j]->index;
+            maxItemValuation = fmax(maxItemValuation, agents[agent].itemUtilityMap[item]);
+        }
+        EFMaxValuation = findBundleValuation(agent, agent, agents) - maxItemValuation;
+    }
+    return EFMaxValuation;
+}
+
+double findEFMaxPlusMinValuation(vector<AgentNodes> agents, vector<ItemNodes> items, int agent) {
+    double EFMaxValuation = 0;
+    // if agent is specified, find EFMax Valuation of agent
+    if(agent!=-1) {
+        double maxItemValuation = 0;
+        double minItemValuation = (agents[agent].allocationItems.size()==0)?0:numeric_limits<double>::max();
+        for(int j = 0; j < agents[agent].allocationItems.size(); j++) {
+            int item = agents[agent].allocationItems[j]->index;
+            maxItemValuation = fmax(maxItemValuation, agents[agent].itemUtilityMap[item]);
+            minItemValuation = fmin(minItemValuation, agents[agent].itemUtilityMap[item]);
+        }
+        EFMaxValuation = findBundleValuation(agent, agent, agents) - maxItemValuation + minItemValuation;
+    }
+    return EFMaxValuation;
 }
 
 // tranfer the item to the 2nd last agent from path violator
@@ -191,6 +265,36 @@ double findBundleValuation(int bundleAgent, int referenceAgent, vector<AgentNode
         valuation+=agents[referenceAgent].itemUtilityMap[item->index];
     } 
     return valuation;
+}
+
+double findMinEnvyDiff(vector<AgentNodes> agents) {
+    double minEnvyDiff = numeric_limits<double>::max();
+    for(int i = 0; i < agents.size(); i++) {
+
+        // find item with max disutility for agent i
+        double maxValuationItem = numeric_limits<double>::min();
+        for(auto j:agents[i].allocationItems) {
+            maxValuationItem = fmax(maxValuationItem, agents[i].itemUtilityMap[j->index]);
+        }
+
+        for(int k = 0; k < agents.size(); k++) {
+            if(i!=k) {
+                minEnvyDiff = fmin( minEnvyDiff, findBundleValuation(k, i, agents) - findBundleValuation(i, i, agents) + maxValuationItem);
+            }
+        }
+    }
+    return minEnvyDiff;
+}
+
+long double findNashEFMaxWelfare(vector<AgentNodes> agents, vector<ItemNodes> items) {
+    long double nashWelfare = 1;
+    for(int i = 0; i < agents.size(); i++) {
+        double EFMaxValuation = findEFMaxValuation(agents, items, i);
+        if(EFMaxValuation > 0 &&  doubleIsEqual(EFMaxValuation, 0, EPS)==false) {
+            nashWelfare*=EFMaxValuation;
+        }
+    }
+    return nashWelfare;
 }
 
 bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items) {

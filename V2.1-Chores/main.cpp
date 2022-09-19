@@ -6,9 +6,13 @@ using namespace std;
 
 int main() 
 {
+    // double b = numeric_limits<double>::max();
+    // long double a = numeric_limits<long double>::max();
+    // cout << a << " " << sizeof(a) << "  " << b << " " << sizeof(b) ;
+    // return 0;
     // Define Inputs 
     bool DEBUG = true;                    // DEBUG Mode ON - true / OFF - false
-    int samples = 30000, iteration = 0;  // number of samples to run the code for
+    int samples = 30000, iteration = 0;   // number of samples to run the code for
     string dist_type = "uniform";         // distribution to generate valutions of agents from - set parameters below
     vector<double> parameters;
     if(dist_type == "uniform") 
@@ -21,20 +25,35 @@ int main()
         parameters = {5,1};               // [mean, std]
 
     // defining log files
-    ofstream logfile;
-    ofstream sampleFile;
-    ofstream minBundlePriceFile;
-    ofstream EFMaxBundlePriceFile;
-    ofstream minBundleValuationFile;
+    ofstream logfile;                         // logs the entire outpur
+    ofstream sampleFile;                      // logs the sample
+    ofstream minEnvyDiffFile;                 // tracks the minimum of [d_i(X_h) - d_i(X_i) + max(d_ij)] over all i.j 
+    ofstream minBundlePriceFile;              // tracks the minimum bundle price over iterations
+    ofstream EFMaxValuationFile;              // tracks di(Xi) - di_max = disutility of least spender after removing highest disutility chore
+    ofstream EFMaxBundlePriceFile;            // tracks EFMax bundle price over iterations
+    ofstream nashEFMaxWelfareFile;            // tracks product of EFMax Valuations of all agents (if > 0)
+    ofstream minBundleValuationFile;          // tracks the disutility/valuation of the minimum bundle
+    ofstream EFMaxPlusMinValuationFile;       // tracks di(Xi) - di_max + di_min of least spender 
+    ofstream minAndEFMaxBundlePriceDiffFile;  // tracks the difference between the minimum bundle price and the EFMax bundle Price
+
+    logfile.open("./Logs/Log.txt");
+    sampleFile.open("./Logs/Samples.txt");
+    minEnvyDiffFile.open("./Logs/MinEnvyDiff.txt");
+    minBundlePriceFile.open("./Logs/MinBundlePrice.txt");
+    EFMaxValuationFile.open("./Logs/EFMaxValuation.txt");
+    EFMaxBundlePriceFile.open("./Logs/EFMaxBundlePrice.txt");
+    nashEFMaxWelfareFile.open("./Logs/NashEFMaxWelfareFile.txt");
+    minBundleValuationFile.open("./Logs/MinBundleValuation.txt");
+    EFMaxPlusMinValuationFile.open("./Logs/EFMaxPlusMinValuationFile.txt");
+    minAndEFMaxBundlePriceDiffFile.open("./Logs/MinAndEFMaxBundlePriceDiff.txt");
     
-
-    logfile.open("Log.txt");
-    sampleFile.open("Samples.txt");
-    minBundlePriceFile.open("MinBundlePrice.txt");
-    EFMaxBundlePriceFile.open("EFMaxBundlePrice.txt");
-    minBundleValuationFile.open("MinBundleValuation.txt");
-
+    // setting file headers
     logfile << "Iteration" << " " << "Agents" << " " << "Items" << " " << "Duration" << " " << "Price_Rise_Steps" << " " << "Tranfer_Steps" << endl;
+    minEnvyDiffFile.precision(1);
+    EFMaxValuationFile.precision(1);
+    nashEFMaxWelfareFile.precision(1);
+    EFMaxPlusMinValuationFile.precision(1);
+    minAndEFMaxBundlePriceDiffFile.precision(1);
 
     // run until number of samples
     while(iteration < samples) {
@@ -44,7 +63,7 @@ int main()
         // Get starting timepoint
         auto start = std::chrono::high_resolution_clock::now();
 
-        // Uniform RNG for number of agents and items
+        // Uniform RNG for determining number of agents and items
         pcg32 rng(iteration);
         std::uniform_int_distribution<int> uniform_dist_agent(1, 10);
         std::uniform_int_distribution<int> uniform_dist_item(1, 10);
@@ -57,45 +76,26 @@ int main()
         int priceRiseSteps = 0;
         int tranferSteps = 0;
         logfile << iteration << " " << n << " " << m << " ";
+        minEnvyDiffFile << iteration << " ";
         minBundlePriceFile << iteration << " ";
+        EFMaxValuationFile << iteration << " ";
         EFMaxBundlePriceFile << iteration << " ";
+        nashEFMaxWelfareFile << iteration << " ";
         minBundleValuationFile << iteration << " ";
-        unordered_map<int, double> valuationMap;
+        EFMaxPlusMinValuationFile << iteration << " ";
 
         // initialize and generate the sample
         vector<AgentNodes> agents(n);
         vector<ItemNodes> items(m);
+        unordered_map<int, long double> valuationMap;
         DEBUG?(cout << "Generating Example... " <<  endl):(cout << "");
         generateSample(iteration, dist_type, parameters, agents, items, sampleFile);
-        
-        // populate MBB ratio for all agents
-        for(int i = 0; i < n; i++) {
-            double MBB = numeric_limits<double>::max();
-            for(int j = 0; j < m; j++)
-                MBB = fmin(MBB, agents[i].itemUtilityMap[j]/items[j].price);
-            agents[i].MBB = MBB;
-        }
 
-        // populate MBB items, bundle price for every agent, an initial allocation and least spender's spending
+        // populate MBB ratio/items, bundle price for every agent, an initial allocation and least spender's spending (pass by reference)
         double minBundlePrice = numeric_limits<double>::max();
-        for(int j = 0; j < m; j++) {
-            int allocated_flag = 0;
-            for(int i = 0; i < n; i++) {
-                if(doubleIsEqual(items[j].price, agents[i].itemUtilityMap[j], EPS)) {
-                    if(allocated_flag==0) {
-                        agents[i].allocationItems.push_back(&items[j]);
-                        agents[i].bundlePrice+=items[j].price;
-                        items[j].allocatedAgent = i;
-                    }
-                    allocated_flag = 1;
-                } 
-                if(doubleIsEqual(agents[i].MBB, agents[i].itemUtilityMap[j]/items[j].price, EPS)) {
-                    agents[i].MBBItems.push_back(&items[j]);
-                }   
-                minBundlePrice = (j==m-1)?fmin(minBundlePrice, agents[i].bundlePrice):minBundlePrice;
-            }
-        }
+        populateInstance(agents, items, minBundlePrice);
 
+        // print input instance
         cout << "Number of Agents: " << n << "; Number of Items: " << m << endl;
         printUtilityMap(agents.size(), items.size(), agents, items);
 
@@ -123,6 +123,7 @@ int main()
             // 2.-> finding alternating paths from LS to path violater --------------------------------------------------------2.
             
             int path_found = 1; //denotes if path was found in the coming step or not
+            int LS = -1;
             unordered_set<int> leastSpenderComponentAgents, leastSpenderComponentItems; 
             while(1) {
                 queue<Nodes*> q;
@@ -154,25 +155,38 @@ int main()
                     leastSpenders.erase(leastSpenders.begin());
                 }   
 
-                int LS = leastSpenders[0];
+                int prevLS = LS;
+                LS = leastSpenders[0];
+
+                // log values
                 double minBundleValuation = findBundleValuation(LS, LS, agents);
+                minEnvyDiffFile << std::fixed << findMinEnvyDiff(agents) << " ";
                 minBundleValuationFile << minBundleValuation << " " << LS << " ; ";
+                EFMaxValuationFile << findEFMaxValuation(agents, items, LS) << LS << ";";
+                EFMaxPlusMinValuationFile << findEFMaxPlusMinValuation(agents, items, LS) << LS << " ";
+                minAndEFMaxBundlePriceDiffFile << std::fixed << (EFMaxBundlePrice - minBundlePrice) << " ";
+                nashEFMaxWelfareFile << std::fixed << findNashEFMaxWelfare(agents, items) << " ";
+                
                 DEBUG?(cout << "Least Spenders " << LS << "'s Valuation " << minBundleValuation << endl):(cout<< "");
-                // insert the valuations in a map
+                
+                // insert the metric to check for monotonicity in a map
+                long double metric = (long double) findNashEFMaxWelfare(agents, items);
                 if(valuationMap.find(LS)==valuationMap.end()) {
-                    valuationMap.insert({LS,minBundleValuation});
+                    valuationMap.insert({LS, metric});
                 } 
                 else {
-                    double prevValuation = valuationMap.at(LS);
-                    if(prevValuation < minBundleValuation && doubleIsEqual(prevValuation, minBundleValuation, EPS)==false) {
-                        valuationMap.at(LS) = minBundlePrice;
+                    long double prevValuation = valuationMap.at(LS);
+                    if(prevValuation < metric && (abs(prevValuation - metric)< EPS)==false) {
+                        valuationMap.at(LS) = metric;
                     }
-                    else if(prevValuation > minBundleValuation && doubleIsEqual(prevValuation, minBundleValuation, EPS)==false) {
-                        cout << "Exited since Proof not satisfied prev: " << prevValuation << " now: " << minBundleValuation << endl;
-                        // return 0;
+                    // if the metric value has strictly decreased from it previous value when LS was least spender, then exit
+                    else if(prevValuation > metric && (abs(prevValuation - metric) < EPS)==false && prevLS!=LS) {
+                        cout << "Exited since Proof not satisfied prev: " << prevValuation << " now: " << metric << endl;
+                        return 0;
                     }
-
                 }
+
+                // initialize BFS params
                 int pathViolater = -1, itemViolater = -1;
                 Nodes* node = &agents[LS];
                 q.push(node);
@@ -292,9 +306,13 @@ int main()
 
         // logging details
         logfile << duration.count() << " " << priceRiseSteps << " " << tranferSteps << endl;
+        minEnvyDiffFile << std::fixed << findMinEnvyDiff(agents) << endl;
         minBundlePriceFile << endl;
+        EFMaxValuationFile << endl;
         EFMaxBundlePriceFile << endl;
         minBundleValuationFile << endl;
+        minAndEFMaxBundlePriceDiffFile << (EFMaxBundlePrice - minBundlePrice) << endl;
+        
         cout << endl << "------ Allocation is now pEF1+fPO -------" << endl << endl;
         printAgentAllocationMBB(agents, items);
 
@@ -313,9 +331,12 @@ int main()
     // closing log files
     logfile.close();
     sampleFile.close();
+    minEnvyDiffFile.close();
     minBundlePriceFile.close();
+    EFMaxValuationFile.close();
     EFMaxBundlePriceFile.close();
     minBundleValuationFile.close();
+    minAndEFMaxBundlePriceDiffFile.close();
 
     return 0;
 }

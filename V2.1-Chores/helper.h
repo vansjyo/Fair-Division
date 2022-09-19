@@ -65,10 +65,20 @@ class AgentNodes: public Nodes {
             }
             cout << endl;
         }
+
+        // double printBundlePrice() {
+        //     double bundlePrice = 0;
+        //     for(auto item:allocationItems) {
+        //         bundlePrice+=item->price;
+        //     }
+        //     return bundlePrice;
+        // }
         
 };
 
 void generateSample(int seed, string distribution_type, vector<double> parameters, vector<AgentNodes> &agents, vector<ItemNodes> &items, ofstream &sampleFile);
+
+void populateInstance(vector<AgentNodes> &agents, vector<ItemNodes> &items, double &minBundlePrice);
 
 bool doubleIsEqual(double v1, double v2, double epsilon);
 
@@ -76,11 +86,7 @@ double findMinBundlePrice(vector<AgentNodes> agents);
 
 vector<int> findLeastSpenders( vector<AgentNodes> agents, double minBundlePrice);
 
-double findEFMaxBundlePrice(vector<AgentNodes> agents, vector<ItemNodes> items);
-
-double computeAlpha1(unordered_set<int> LSComponentAgents, unordered_set<int> LSComponentItems, vector<AgentNodes> agents, vector<ItemNodes> items);
-
-double computeAlpha2(unordered_set<int> LSComponentAgents,  vector<AgentNodes> agents, double minBundlePrice);
+double findEFMaxBundlePrice(vector<AgentNodes> agents, vector<ItemNodes> items, int agent=-1);
 
 void updateItemPrices(unordered_set<int> LSComponentItems, vector<ItemNodes> &items, double beta);
 
@@ -88,6 +94,20 @@ void updateAgentBundles(unordered_set<int> LSComponentAgents, unordered_set<int>
 
 void transferItem(int itemToTransfer, int transferFromAgent, int tranferToAgent, vector<AgentNodes> &agents, vector<ItemNodes> &items);
 
+// metrics
+
+double findEFMaxPlusMinValuation(vector<AgentNodes> agents, vector<ItemNodes> items, int agent=-1);
+
+double computeAlpha1(unordered_set<int> LSComponentAgents, unordered_set<int> LSComponentItems, vector<AgentNodes> agents, vector<ItemNodes> items);
+
+double computeAlpha2(unordered_set<int> LSComponentAgents,  vector<AgentNodes> agents, double minBundlePrice);
+
 bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items);
 
 double findBundleValuation(int bundleAgent, int referenceAgent, vector<AgentNodes> agents);
+
+double findEFMaxValuation(vector<AgentNodes> agents, vector<ItemNodes> items, int agent=-1);
+
+long double findNashEFMaxWelfare(vector<AgentNodes> agents, vector<ItemNodes> items);
+
+double findMinEnvyDiff(vector<AgentNodes> agents);

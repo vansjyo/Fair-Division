@@ -6,10 +6,6 @@ using namespace std;
 
 int main() 
 {
-    // double b = numeric_limits<double>::max();
-    // long double a = numeric_limits<long double>::max();
-    // cout << a << " " << sizeof(a) << "  " << b << " " << sizeof(b) ;
-    // return 0;
     // Define Inputs 
     bool DEBUG = true;                    // DEBUG Mode ON - true / OFF - false
     int samples = 30000, iteration = 0;   // number of samples to run the code for

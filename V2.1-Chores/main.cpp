@@ -8,7 +8,7 @@ int main()
 {
     // Define Inputs 
     bool DEBUG = true;                    // DEBUG Mode ON - true / OFF - false
-    int samples = 30000, iteration = 0;   // number of samples to run the code for
+    int samples = 30000, iteration = 2;   // number of samples to run the code for
     string dist_type = "uniform";         // distribution to generate valutions of agents from - set parameters below
     vector<double> parameters;
     if(dist_type == "uniform") 
@@ -61,7 +61,7 @@ int main()
 
         // Uniform RNG for determining number of agents and items
         pcg32 rng(iteration);
-        std::uniform_int_distribution<int> uniform_dist_agent(1, 10);
+        std::uniform_int_distribution<int> uniform_dist_agent(1, 3);
         std::uniform_int_distribution<int> uniform_dist_item(1, 10);
 
         // define inputs - initialize n - agents (iterator-> i), m - items (iterator-> j)
@@ -166,7 +166,7 @@ int main()
                 DEBUG?(cout << "Least Spenders " << LS << "'s Valuation " << minBundleValuation << endl):(cout<< "");
                 
                 // insert the metric to check for monotonicity in a map
-                long double metric = (long double) findNashEFMaxWelfare(agents, items);
+                long double metric = (long double) findEFMaxValuation(agents, items, LS);
                 if(valuationMap.find(LS)==valuationMap.end()) {
                     valuationMap.insert({LS, metric});
                 } 
@@ -178,6 +178,14 @@ int main()
                     // if the metric value has strictly decreased from it previous value when LS was least spender, then exit
                     else if(prevValuation > metric && (abs(prevValuation - metric) < EPS)==false && prevLS!=LS) {
                         cout << "Exited since Proof not satisfied prev: " << prevValuation << " now: " << metric << endl;
+                        return 0;
+                    }
+                }
+
+                // check if any of the past Least Spenders have become the Big Spenders
+                for(unordered_map<int, long double>::iterator it = valuationMap.begin(); it!=valuationMap.end(); it++) {
+                    if( doubleIsEqual(EFMaxBundlePrice, findEFMaxBundlePrice(agents, items, it->first), EPS)==true ) {
+                        cout << "Exited since Proof not satisfied. Agent " << it->first << " becomes the Big Spender with bundle price: " << findEFMaxBundlePrice(agents, items, it->first) << endl;
                         return 0;
                     }
                 }

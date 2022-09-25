@@ -8,7 +8,7 @@ int main()
 {
     // Define Inputs 
     bool DEBUG = true;                    // DEBUG Mode ON - true / OFF - false
-    int samples = 30000, iteration = 2;   // number of samples to run the code for
+    int samples = 60000, iteration = 0;   // number of samples to run the code for
     string dist_type = "uniform";         // distribution to generate valutions of agents from - set parameters below
     vector<double> parameters;
     if(dist_type == "uniform") 
@@ -61,8 +61,8 @@ int main()
 
         // Uniform RNG for determining number of agents and items
         pcg32 rng(iteration);
-        std::uniform_int_distribution<int> uniform_dist_agent(1, 3);
-        std::uniform_int_distribution<int> uniform_dist_item(1, 10);
+        std::uniform_int_distribution<int> uniform_dist_agent(3, 3);
+        std::uniform_int_distribution<int> uniform_dist_item(1, 5);
 
         // define inputs - initialize n - agents (iterator-> i), m - items (iterator-> j)
         int n = uniform_dist_agent(rng);
@@ -83,7 +83,8 @@ int main()
         // initialize and generate the sample
         vector<AgentNodes> agents(n);
         vector<ItemNodes> items(m);
-        unordered_map<int, long double> valuationMap;
+        unordered_map<int, long double> valuationMap;                    // stores LS and their corresponding metrics to track
+        unordered_map<int, long double> afterReceivingItemValuationMap;  // stores LS and their corresponding valuations after directly receiving an item
         DEBUG?(cout << "Generating Example... " <<  endl):(cout << "");
         generateSample(iteration, dist_type, parameters, agents, items, sampleFile);
 
@@ -177,16 +178,16 @@ int main()
                     }
                     // if the metric value has strictly decreased from it previous value when LS was least spender, then exit
                     else if(prevValuation > metric && (abs(prevValuation - metric) < EPS)==false && prevLS!=LS) {
-                        cout << "Exited since Proof not satisfied prev: " << prevValuation << " now: " << metric << endl;
-                        return 0;
+                        cout << "Exited: PREV_VALUATION_AFTER_LS_AGAIN proof not satisfied, prev: " << prevValuation << " now: " << metric << endl;
+                        // return 0;
                     }
                 }
 
                 // check if any of the past Least Spenders have become the Big Spenders
                 for(unordered_map<int, long double>::iterator it = valuationMap.begin(); it!=valuationMap.end(); it++) {
                     if( doubleIsEqual(EFMaxBundlePrice, findEFMaxBundlePrice(agents, items, it->first), EPS)==true ) {
-                        cout << "Exited since Proof not satisfied. Agent " << it->first << " becomes the Big Spender with bundle price: " << findEFMaxBundlePrice(agents, items, it->first) << endl;
-                        return 0;
+                        cout << "Exited: PREV_LS_BECOMES_BS not satisfied. Agent " << it->first << " becomes the Big Spender with bundle price: " << findEFMaxBundlePrice(agents, items, it->first) << endl;
+                        // return 0;
                     }
                 }
 
@@ -239,6 +240,25 @@ int main()
                 if(pathViolater!=-1) {
 
                     transferItem(itemViolater, pathViolater, predAgentToItem[itemViolater], agents, items);
+
+                    // if the LS directly receives an item, log it
+                    if(predAgentToItem[itemViolater]==LS) {
+                        long double metric = findBundleValuation(LS, LS, agents);
+                        if(afterReceivingItemValuationMap.find(LS)==afterReceivingItemValuationMap.end()) {
+                            afterReceivingItemValuationMap.insert({LS, metric});
+                        }
+                        else {
+                            long double prevValuation = afterReceivingItemValuationMap.at(LS);
+                            if(prevValuation < metric && (abs(prevValuation - metric)< EPS)==false) {
+                                valuationMap.at(LS) = metric;
+                            }
+                            // if the metric value has strictly decreased from it previous value when LS was least spender, then exit
+                            else if(prevValuation > metric && (abs(prevValuation - metric) < EPS)==false) {
+                                cout << "Exited: PREV_AFTER_RECEIVING_ITEM_PROOF not satisfied prev: " << prevValuation << " now: " << metric << endl;
+                                // return 0;
+                              }
+                        }
+                    }
                     tranferSteps++;
 
                     // printAgentAllocationMBB(agents, items);

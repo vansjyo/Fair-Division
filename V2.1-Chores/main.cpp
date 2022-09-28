@@ -1,4 +1,4 @@
-// #include <bits/stdc++.h>
+#include <bits/stdc++.h>
 #include <pcg_random.hpp>
 #include "output.h"
 #define EPS 0.00001f
@@ -8,7 +8,7 @@ int main()
 {
     // Define Inputs 
     bool DEBUG = true;                    // DEBUG Mode ON - true / OFF - false
-    int samples = 60000, iteration = 0;   // number of samples to run the code for
+    int samples = 120000, iteration = 60000;   // number of samples to run the code for
     string dist_type = "uniform";         // distribution to generate valutions of agents from - set parameters below
     vector<double> parameters;
     if(dist_type == "uniform") 
@@ -61,8 +61,8 @@ int main()
 
         // Uniform RNG for determining number of agents and items
         pcg32 rng(iteration);
-        std::uniform_int_distribution<int> uniform_dist_agent(3, 3);
-        std::uniform_int_distribution<int> uniform_dist_item(1, 5);
+        std::uniform_int_distribution<int> uniform_dist_agent(2, 10);
+        std::uniform_int_distribution<int> uniform_dist_item(1, 20);
 
         // define inputs - initialize n - agents (iterator-> i), m - items (iterator-> j)
         int n = uniform_dist_agent(rng);
@@ -126,6 +126,7 @@ int main()
                 queue<Nodes*> q;
                 vector<int> visitedAgent(n,0), visitedItem(m,0);
                 vector<int> predAgentToItem(m,-1), predItemToAgent(n,0); //predAgent = preceding agent to an item
+                int LSToBSAgent = -1;
 
                 // revise Least Spenders if path was found or exchange occured
                 if(path_found) {
@@ -164,7 +165,7 @@ int main()
                 minAndEFMaxBundlePriceDiffFile << std::fixed << (EFMaxBundlePrice - minBundlePrice) << " ";
                 nashEFMaxWelfareFile << std::fixed << findNashEFMaxWelfare(agents, items) << " ";
                 
-                DEBUG?(cout << "Least Spenders " << LS << "'s Valuation " << minBundleValuation << endl):(cout<< "");
+                DEBUG?(cout << "Least Spenders " << LS << "'s Valuation " << minBundleValuation << endl):(cout << "");
                 
                 // insert the metric to check for monotonicity in a map
                 long double metric = (long double) findEFMaxValuation(agents, items, LS);
@@ -187,6 +188,11 @@ int main()
                 for(unordered_map<int, long double>::iterator it = valuationMap.begin(); it!=valuationMap.end(); it++) {
                     if( doubleIsEqual(EFMaxBundlePrice, findEFMaxBundlePrice(agents, items, it->first), EPS)==true ) {
                         cout << "Exited: PREV_LS_BECOMES_BS not satisfied. Agent " << it->first << " becomes the Big Spender with bundle price: " << findEFMaxBundlePrice(agents, items, it->first) << endl;
+                        LSToBSAgent = it->first;
+                        if(is_EF1_fPO(agents, items)==false) {
+                            cout << "EF1 condition not satisfied";
+                            return 0;
+                        } 
                         // return 0;
                     }
                 }
@@ -239,7 +245,12 @@ int main()
                 // transfer item to pred[itemViolater] from pathViolater and update bundle prices if a path violater is found
                 if(pathViolater!=-1) {
 
+                    // perform transfer, update bundles and graph
                     transferItem(itemViolater, pathViolater, predAgentToItem[itemViolater], agents, items);
+                    if(LSToBSAgent!=-1 && pathViolater!=LSToBSAgent) {
+                        cout << "EXIT:LS_TO_BS - LS turned BS was not path violator";
+                        return 0;
+                    }
 
                     // if the LS directly receives an item, log it
                     if(predAgentToItem[itemViolater]==LS) {
@@ -259,6 +270,7 @@ int main()
                               }
                         }
                     }
+
                     tranferSteps++;
 
                     // printAgentAllocationMBB(agents, items);
@@ -341,7 +353,7 @@ int main()
         printAgentAllocationMBB(agents, items);
 
         // Final Brute Force Check for pEF1
-        if(is_EF1_fPO(agents, items)==false) {
+        if(is_PEF1_fPO(agents, items)==false || is_EF1_fPO(agents, items)==false) {
             cout << "ERROR - ALLOCATION INCORRECT" << endl;
             return 0;
         }

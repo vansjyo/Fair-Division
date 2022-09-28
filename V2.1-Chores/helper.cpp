@@ -1,4 +1,4 @@
-#include <bits/stdc++.h>
+// #include <bits/stdc++.h>
 #include <pcg_random.hpp>
 #include "helper.h"
 #define EPS 0.00001f
@@ -297,7 +297,8 @@ long double findNashEFMaxWelfare(vector<AgentNodes> agents, vector<ItemNodes> it
     return nashWelfare;
 }
 
-bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items) {
+// check if the pEF1 condition is satisfied for an allocation
+bool is_PEF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items) {
     for(int i = 0; i < agents.size(); i++) {
         for(int k = 0; k < agents.size(); k++) {
 
@@ -310,8 +311,12 @@ bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items) {
                 return false;
         }
     }
+    return true;
+}
 
-    // 
+// check if the EF1 condition is satisfied for an allocation
+bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items) {
+
     for(int i = 0; i < agents.size(); i++) {
         for(int k = 0; k < agents.size(); k++) {
 

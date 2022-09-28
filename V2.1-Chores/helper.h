@@ -102,6 +102,8 @@ double computeAlpha1(unordered_set<int> LSComponentAgents, unordered_set<int> LS
 
 double computeAlpha2(unordered_set<int> LSComponentAgents,  vector<AgentNodes> agents, double minBundlePrice);
 
+bool is_PEF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items);
+
 bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items);
 
 double findBundleValuation(int bundleAgent, int referenceAgent, vector<AgentNodes> agents);

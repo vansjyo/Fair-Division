@@ -15,3 +15,5 @@ void printIntSet(unordered_set<int> v);
 void printAgentAllocationMBB(vector<AgentNodes> agents, vector<ItemNodes> items);
 
 void printRevisedPrices(vector<ItemNodes> items);
+
+void generateExcel(vector<AgentNodes> agents, vector<ItemNodes> items, ofstream &fileHandle);

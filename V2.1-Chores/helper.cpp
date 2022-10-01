@@ -62,7 +62,8 @@ void generateSample(int seed, string distribution_type, vector<double> parameter
     }  
     return;
 }
-        
+
+// populate MBB ratio/items, bundle price for every agent, an initial allocation and least spender's spending (pass by reference)
 void populateInstance(vector<AgentNodes> &agents, vector<ItemNodes> &items, double &minBundlePrice) {
     // populate MBB ratio for all agents
     int n = agents.size();
@@ -147,6 +148,7 @@ double findEFMaxBundlePrice(vector<AgentNodes> agents, vector<ItemNodes> items, 
     return EFMaxBundlePrice;
 }
 
+// find EFMax Valuation of an agent 
 double findEFMaxValuation(vector<AgentNodes> agents, vector<ItemNodes> items, int agent) {
     double EFMaxValuation = 0;
     // if agent is specified, find EFMax Valuation of agent

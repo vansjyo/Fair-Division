@@ -8,7 +8,7 @@ int main()
 {
     // Define Inputs 
     bool DEBUG = true;                    // DEBUG Mode ON - true / OFF - false
-    int samples = 120000, iteration = 60000;   // number of samples to run the code for
+    int samples = 3, iteration = 1;   // number of samples to run the code for
     string dist_type = "uniform";         // distribution to generate valutions of agents from - set parameters below
     vector<double> parameters;
     if(dist_type == "uniform") 
@@ -21,6 +21,7 @@ int main()
         parameters = {5,1};               // [mean, std]
 
     // defining log files
+    ofstream myExcel;
     ofstream logfile;                         // logs the entire outpur
     ofstream sampleFile;                      // logs the sample
     ofstream minEnvyDiffFile;                 // tracks the minimum of [d_i(X_h) - d_i(X_i) + max(d_ij)] over all i.j 
@@ -32,6 +33,7 @@ int main()
     ofstream EFMaxPlusMinValuationFile;       // tracks di(Xi) - di_max + di_min of least spender 
     ofstream minAndEFMaxBundlePriceDiffFile;  // tracks the difference between the minimum bundle price and the EFMax bundle Price
 
+    myExcel.open("./Logs/ExcelLog.txt", std::ios_base::app);
     logfile.open("./Logs/Log.txt");
     sampleFile.open("./Logs/Samples.txt");
     minEnvyDiffFile.open("./Logs/MinEnvyDiff.txt");
@@ -71,6 +73,7 @@ int main()
         // logging info
         int priceRiseSteps = 0;
         int tranferSteps = 0;
+        myExcel << endl << "Sample" <<  iteration << endl;
         logfile << iteration << " " << n << " " << m << " ";
         minEnvyDiffFile << iteration << " ";
         minBundlePriceFile << iteration << " ";
@@ -157,6 +160,7 @@ int main()
                 LS = leastSpenders[0];
 
                 // log values
+                generateExcel(agents, items, myExcel);
                 double minBundleValuation = findBundleValuation(LS, LS, agents);
                 minEnvyDiffFile << std::fixed << findMinEnvyDiff(agents) << " ";
                 minBundleValuationFile << minBundleValuation << " " << LS << " ; ";
@@ -341,6 +345,7 @@ int main()
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 
         // logging details
+        myExcel << endl;
         logfile << duration.count() << " " << priceRiseSteps << " " << tranferSteps << endl;
         minEnvyDiffFile << std::fixed << findMinEnvyDiff(agents) << endl;
         minBundlePriceFile << endl;
@@ -365,6 +370,7 @@ int main()
     }
 
     // closing log files
+    myExcel.close();
     logfile.close();
     sampleFile.close();
     minEnvyDiffFile.close();

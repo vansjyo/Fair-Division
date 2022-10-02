@@ -8,7 +8,7 @@ int main()
 {
     // Define Inputs 
     bool DEBUG = true;                    // DEBUG Mode ON - true / OFF - false
-    int samples = 3, iteration = 1;   // number of samples to run the code for
+    int samples = 30000, iteration = 0;   // number of samples to run the code for
     string dist_type = "uniform";         // distribution to generate valutions of agents from - set parameters below
     vector<double> parameters;
     if(dist_type == "uniform") 
@@ -63,8 +63,8 @@ int main()
 
         // Uniform RNG for determining number of agents and items
         pcg32 rng(iteration);
-        std::uniform_int_distribution<int> uniform_dist_agent(2, 10);
-        std::uniform_int_distribution<int> uniform_dist_item(1, 20);
+        std::uniform_int_distribution<int> uniform_dist_agent(4, 4);
+        std::uniform_int_distribution<int> uniform_dist_item(1, 30);
 
         // define inputs - initialize n - agents (iterator-> i), m - items (iterator-> j)
         int n = uniform_dist_agent(rng);
@@ -73,7 +73,7 @@ int main()
         // logging info
         int priceRiseSteps = 0;
         int tranferSteps = 0;
-        myExcel << endl << "Sample" <<  iteration << endl;
+        myExcel << endl << "Sample-" <<  iteration << endl;
         logfile << iteration << " " << n << " " << m << " ";
         minEnvyDiffFile << iteration << " ";
         minBundlePriceFile << iteration << " ";
@@ -160,7 +160,7 @@ int main()
                 LS = leastSpenders[0];
 
                 // log values
-                generateExcel(agents, items, myExcel);
+                // generateExcel(agents, items, myExcel);
                 double minBundleValuation = findBundleValuation(LS, LS, agents);
                 minEnvyDiffFile << std::fixed << findMinEnvyDiff(agents) << " ";
                 minBundleValuationFile << minBundleValuation << " " << LS << " ; ";
@@ -193,10 +193,10 @@ int main()
                     if( doubleIsEqual(EFMaxBundlePrice, findEFMaxBundlePrice(agents, items, it->first), EPS)==true ) {
                         cout << "Exited: PREV_LS_BECOMES_BS not satisfied. Agent " << it->first << " becomes the Big Spender with bundle price: " << findEFMaxBundlePrice(agents, items, it->first) << endl;
                         LSToBSAgent = it->first;
-                        if(is_EF1_fPO(agents, items)==false) {
-                            cout << "EF1 condition not satisfied";
-                            return 0;
-                        } 
+                        // if(is_EF1_fPO(agents, items)==false) {
+                        //     cout << "EF1 condition not satisfied";
+                        //     return 0;
+                        // } 
                         // return 0;
                     }
                 }
@@ -252,8 +252,8 @@ int main()
                     // perform transfer, update bundles and graph
                     transferItem(itemViolater, pathViolater, predAgentToItem[itemViolater], agents, items);
                     if(LSToBSAgent!=-1 && pathViolater!=LSToBSAgent) {
-                        cout << "EXIT:LS_TO_BS - LS turned BS was not path violator";
-                        return 0;
+                        cout << "EXIT:LS_TO_BS - LS turned BS was not path violator" << endl;
+                        // return 0;
                     }
 
                     // if the LS directly receives an item, log it

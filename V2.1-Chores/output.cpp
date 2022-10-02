@@ -83,9 +83,9 @@ void generateExcel(vector<AgentNodes> agents, vector<ItemNodes> items, ofstream 
 
     fileHandle << endl << "Disutility ";
     for(auto agent: agents)
-        fileHandle << findBundleValuation(agent.index, agent.index, agents) << " ";
+        fileHandle << agent.bundlePrice << " ";
 
-    fileHandle << endl << "Bundle Price ";
+    fileHandle << endl << "Bundle-Price ";
     for(auto agent: agents)
         fileHandle << findBundleValuation(agent.index, agent.index, agents) << " ";
 
@@ -96,5 +96,14 @@ void generateExcel(vector<AgentNodes> agents, vector<ItemNodes> items, ofstream 
 
         fileHandle << " ";
     }
+
+    fileHandle << endl << "MBB ";
+    for(auto agent: agents) {
+        for(auto item: agent.MBBItems)
+            fileHandle << item->index << ";";
+
+        fileHandle << " ";
+    }
+    fileHandle << endl << "----------------";
 
 }

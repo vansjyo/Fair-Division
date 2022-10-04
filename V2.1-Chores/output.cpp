@@ -66,26 +66,27 @@ void printRevisedPrices(vector<ItemNodes> items) {
     cout << endl << "----------------------------------- " << endl << endl;
 }
 
-void printRevisedEFMaxPrices(vector<ItemNodes> items) {
-    cout << "------------- P(j): -------------- " << endl;
-	for(int j = 0; j < items.size(); j++) {
-        cout << left << setw(nameWidth) << setfill(separator) << to_string(j)+":[ " << setprecision(11) << items[j].price << " ] ";
-        // cout << left << setw(nameWidth) << setfill(separator) << items[j].price;
-	}
-    cout << endl << "----------------------------------- " << endl << endl;
-}
-
 // generate an Excel friendly output of each iteration within a sample
 void generateExcel(vector<AgentNodes> agents, vector<ItemNodes> items, ofstream &fileHandle) {
     fileHandle << endl << "Agent ";
     for(auto agent: agents) 
         fileHandle << agent.index << " ";
 
-    fileHandle << endl << "Disutility ";
+    fileHandle << endl << "Bundle-Price ";
     for(auto agent: agents)
         fileHandle << agent.bundlePrice << " ";
 
-    fileHandle << endl << "Bundle-Price ";
+    fileHandle << endl << "EFMax-Price ";
+    for(int i = 0; i < agents.size(); i++) {
+        double maxItemPrice = 0;
+        for(int j = 0; j < agents[i].allocationItems.size(); j++) {
+            int item = agents[i].allocationItems[j]->index;
+            maxItemPrice = fmax(maxItemPrice, items[item].price);
+        }
+        fileHandle << agents[i].bundlePrice - maxItemPrice << " ";
+    }
+
+    fileHandle << endl << "Disutility ";
     for(auto agent: agents)
         fileHandle << findBundleValuation(agent.index, agent.index, agents) << " ";
 

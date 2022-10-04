@@ -8,7 +8,7 @@ int main()
 {
     // Define Inputs 
     bool DEBUG = true;                    // DEBUG Mode ON - true / OFF - false
-    int samples = 30000, iteration = 0;   // number of samples to run the code for
+    int samples = 34106, iteration = 34105;   // number of samples to run the code for
     string dist_type = "uniform";         // distribution to generate valutions of agents from - set parameters below
     vector<double> parameters;
     if(dist_type == "uniform") 
@@ -63,8 +63,8 @@ int main()
 
         // Uniform RNG for determining number of agents and items
         pcg32 rng(iteration);
-        std::uniform_int_distribution<int> uniform_dist_agent(4, 4);
-        std::uniform_int_distribution<int> uniform_dist_item(1, 30);
+        std::uniform_int_distribution<int> uniform_dist_agent(2, 5);
+        std::uniform_int_distribution<int> uniform_dist_item(1, 15);
 
         // define inputs - initialize n - agents (iterator-> i), m - items (iterator-> j)
         int n = uniform_dist_agent(rng);
@@ -160,7 +160,7 @@ int main()
                 LS = leastSpenders[0];
 
                 // log values
-                // generateExcel(agents, items, myExcel);
+                generateExcel(agents, items, myExcel);
                 double minBundleValuation = findBundleValuation(LS, LS, agents);
                 minEnvyDiffFile << std::fixed << findMinEnvyDiff(agents) << " ";
                 minBundleValuationFile << minBundleValuation << " " << LS << " ; ";
@@ -253,6 +253,7 @@ int main()
                     transferItem(itemViolater, pathViolater, predAgentToItem[itemViolater], agents, items);
                     if(LSToBSAgent!=-1 && pathViolater!=LSToBSAgent) {
                         cout << "EXIT:LS_TO_BS - LS turned BS was not path violator" << endl;
+                        // system("canberra-gtk-play -f ~/Downloads/pno-cs.wav"); // play sound once the program finishes LOL!
                         // return 0;
                     }
 
@@ -380,6 +381,7 @@ int main()
     minBundleValuationFile.close();
     minAndEFMaxBundlePriceDiffFile.close();
 
+    system("canberra-gtk-play -f ~/Downloads/pno-cs.wav"); // play sound once the program finishes LOL!
     return 0;
 }
 

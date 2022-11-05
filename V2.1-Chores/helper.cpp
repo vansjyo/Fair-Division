@@ -5,7 +5,7 @@
 
 void generateSample(int seed, string distribution_type, vector<double> parameters, vector<AgentNodes> &agents, vector<ItemNodes> &items, ofstream &sampleFile) {
 
-    // set values
+    cout << "Generating Example... " <<  endl;
 
     // populate item Utility map and determine price of each item
     vector<int> init_values(items.size(),0);
@@ -103,6 +103,20 @@ bool doubleIsEqual(double v1, double v2, double epsilon) {
         return false;
 }
 
+bool doubleIsGreaterOrEqual(double v1, double v2, double epsilon) {
+    if( (v1 > v2) || doubleIsEqual(v1, v2, epsilon)==true ) {
+        return true;
+    }
+    return false;
+}
+
+bool doubleIsGreater(double v1, double v2, double epsilon) {
+    if( (v1 > v2) && doubleIsEqual(v1, v2, epsilon)==false ) {
+        return true;
+    }
+    return false;
+}
+
 // find the minimum Bundle price
 double findMinBundlePrice(vector<AgentNodes> agents) {
     double minBundlePrice = numeric_limits<double>::max();
@@ -120,6 +134,17 @@ vector<int> findLeastSpenders(vector<AgentNodes> agents, double minBundlePrice) 
             leastSpenders.push_back(agents[i].index);
     }
     return leastSpenders;
+}
+
+vector<int> findBigSpenders(vector<AgentNodes> agents, vector<ItemNodes> items, double EFMaxBundlePrice) {
+    vector<int> bigSpenders;
+    for(AgentNodes it:agents) {
+        double EFPrice = findEFMaxBundlePrice(agents, items, it.index);
+        if( doubleIsEqual(EFMaxBundlePrice, EFPrice, EPS)==true ) {
+            bigSpenders.push_back(it.index);
+        }
+    }
+    return bigSpenders;
 }
 
 // find Big Spender's (agent with highest utility after removing highest utility item from their bundle) EFMAx Bundle Price or EFMax Bundle Price of agent
@@ -297,6 +322,37 @@ long double findNashEFMaxWelfare(vector<AgentNodes> agents, vector<ItemNodes> it
         }
     }
     return nashWelfare;
+}
+
+int checkMetricMonotonicityWhenSameAgentbecomesLS(int LS, unordered_map<int, long double> &valuationMap, long double metric, 
+                                                    vector<AgentNodes> agents, vector<ItemNodes> items) {
+
+    // status 1: value not present or is monotonic, modified map value
+    // status 2: sample was non-monotonic and EF1
+    // status 0: sample was not monotonic and not EF1
+    if(valuationMap.find(LS)==valuationMap.end()) {
+        valuationMap.insert({LS, metric});
+        return 1;
+    } 
+
+    long double prevValuation = valuationMap.at(LS);
+    if( doubleIsGreaterOrEqual(prevValuation, metric, EPS)==false ) {
+        valuationMap.at(LS) = metric;
+        return 1;
+    }
+    else if( doubleIsGreater(prevValuation, metric, EPS) ) {
+        cout << "Exited: PREV_METRIC_AFTER_LS_AGAIN_GREATER, prev: " << prevValuation << " now: " << metric << endl;
+        
+        if(is_EF1_fPO(agents, items)==true) {
+            cout << "CHECK3: LS_TO_BS=1 & EF1=1" << endl;
+            return 2;
+        }
+        else {
+            cout << "CHECK3: LS_TO_BS=1 & EF1=0" << endl;
+            return 0;
+        }
+    }
+    return 1;
 }
 
 // check if the pEF1 condition is satisfied for an allocation

@@ -15,3 +15,7 @@ The code is a modified implementation of [[https://dl.acm.org/doi/10.1145/321916
 * Run `make -f makefile.mak`. If make command not supported, run `g++ main.cpp helper.cpp output.cpp`
 * Run the exexutive file generated - `./main`
 * To log the console output to a log file, run `./main | tee "/<fileLocation>/output.txt"`
+
+#### latest code: V2.1-Chores
+
+

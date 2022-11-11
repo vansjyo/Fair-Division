@@ -7,8 +7,8 @@ using namespace std;
 int main() 
 {
     // Define Inputs 
-    bool DEBUG = false;                    // DEBUG Mode ON - true / OFF - false
-    int samples = 10000, iteration = 0;   // number of samples to run the code for
+    bool DEBUG = true;                    // DEBUG Mode ON - true / OFF - false
+    int samples = 4420, iteration = 4419; // number of samples to run the code for
     string dist_type = "uniform";         // distribution to generate valutions of agents from - set parameters below
     vector<double> parameters;
     if(dist_type == "uniform") 
@@ -208,15 +208,15 @@ int main()
                 // }
 
                 // check if any of the past Least Spenders have become the Big Spenders
-                for(unordered_map<int, long double>::iterator it = valuationMap.begin(); it!=valuationMap.end(); it++) {
-                    if( doubleIsEqual(EFMaxBundlePrice, findEFMaxBundlePrice(agents, items, it->first), EPS)==true ) {
-                        cout << "Exited: PREV_LS_BECOMES_BS Agent " << it->first << " becomes Big Spender. Bbundle price: " << findEFMaxBundlePrice(agents, items, it->first) << endl;
-                        LSToBSAgent = it->first;
+                // for(unordered_map<int, long double>::iterator it = valuationMap.begin(); it!=valuationMap.end(); it++) {
+                //     if( doubleIsEqual(EFMaxBundlePrice, findEFMaxBundlePrice(agents, items, it->first), EPS)==true ) {
+                //         cout << "Exited: PREV_LS_BECOMES_BS Agent " << it->first << " becomes Big Spender. Bbundle price: " << findEFMaxBundlePrice(agents, items, it->first) << endl;
+                //         LSToBSAgent = it->first;
 
-                        if(is_EF1_fPO(agents, items)==false) cout << "EF1 condition not satisfied" << endl;
-                        else cout << "EF1 satisfied" << endl;
-                    }
-                }
+                //         if(is_EF1_fPO(agents, items)==false) cout << "EF1 condition not satisfied" << endl;
+                //         else cout << "EF1 satisfied" << endl;
+                //     }
+                // }
 
                 // initialize BFS params
                 int pathViolater = -1, itemViolater = -1;
@@ -263,9 +263,11 @@ int main()
                 }
                 // ------------------------------------------------------------------------------- 3.
 
-                if(prevLS!=LS || q.empty()) {
+                if(prevLS!=LS && prevLS!=-1) {
                     long double metric = (long double) (findBundleValuation(LS, LS, agents));
-                    int status = checkMetricMonotonicityWhenSameAgentbecomesLS(LS, valuationMap, metric, agents, items);
+                    // valuationMap[prevLS] = findBundleValuation(prevLS, prevLS, agents) - agents[prevLS].itemUtilityMap[agents[prevLS].allocationItems.back()->index];
+                    // long double metric = (long double) findEFMaxValuation(agents, items, BS) - findBundleValuation(LS, BS, agents);
+                    int status = checkMetricMonotonicityWhenSameAgentbecomesLS("increasing", LS, valuationMap, metric, agents, items);
                     if(status==2) goto GOTO_NEXT;
                     else if(status==0) goto GOTO_EXIT;
                 }
@@ -288,17 +290,17 @@ int main()
                 if(pathViolater!=-1) {
 
                     // see if the pathviolator was the new BS - If not, check EF1, else continue
-                    if(LSToBSAgent!=-1 && pathViolater!=LSToBSAgent) {
-                        cout << "EXIT:LS_TO_BS - LS turned BS was not path violator" << endl;
-                        if(is_EF1_fPO(agents, items)==true) {
-                            cout << "CHECK2: LS_TO_BS=1 & EF1=1" << endl;
-                            // goto GOTO_NEXT;
-                        }
-                        else {
-                            cout << "CHECK2: LS_TO_BS=1 & EF1=0" << endl;
-                            // goto GOTO_EXIT;
-                        }
-                    }
+                    // if(LSToBSAgent!=-1 && pathViolater!=LSToBSAgent) {
+                    //     cout << "EXIT:LS_TO_BS - LS turned BS was not path violator" << endl;
+                    //     if(is_EF1_fPO(agents, items)==true) {
+                    //         cout << "CHECK2: LS_TO_BS=1 & EF1=1" << endl;
+                    //         // goto GOTO_NEXT;
+                    //     }
+                    //     else {
+                    //         cout << "CHECK2: LS_TO_BS=1 & EF1=0" << endl;
+                    //         // goto GOTO_EXIT;
+                    //     }
+                    // }
                     
                     // perform transfer, update bundles and graph
                     transferItem(itemViolater, pathViolater, predAgentToItem[itemViolater], agents, items);
@@ -329,46 +331,12 @@ int main()
                 }
                 else if(q.empty()) {
 
-                    cout << "Queue is empty." << endl;
-
                     // if pEF1 condition satisfied, come out of the loop and return the allocation
                     if( doubleIsGreaterOrEqual(minBundlePrice, EFMaxBundlePrice, EPS) ) {
                         break;
                     }
-                    if(is_EF1_fPO(agents, items)==false) {
-                        cout << "EF1 condition not satisfied" << endl;
-                    } 
-                    else cout << "EF1 allocation." << endl;
-
-                    generateExcel(agents, items, myExcel);
-
-                    // long double metric = (long double) (findBundleValuation(LS, BS, agents));
-                    // if(valuationMap.find(LS)==valuationMap.end()) {
-                    //     valuationMap.insert({LS, metric});
-                    // } 
-                    // else {
-                    //     long double prevValuation = valuationMap.at(LS);
-                    //     if( doubleIsGreaterOrEqual(prevValuation, metric, EPS)==false ) {
-                    //         // if previous value of metric was less than current, update it 
-                    //         valuationMap.at(LS) = metric;
-                    //     }
-                    //     else if( doubleIsGreater(prevValuation, metric, EPS) && prevLS!=LS) {
-                    //         // else if the metric value has strictly decreased from it previous value when LS was least spender, then exit
-                    //         cout << "Exited: PREV_METRIC_AFTER_LS_AGAIN_GREATER, prev: " << prevValuation << " now: " << metric << endl;
-                            
-                    //         if(is_EF1_fPO(agents, items)==true) {
-                    //             cout << "CHECK3: LS_TO_BS=1 & EF1=1" << endl;
-                    //             goto GOTO_NEXT;
-                    //         }
-                    //         else {
-                    //             cout << "CHECK3: LS_TO_BS=1 & EF1=0" << endl;
-                    //             goto GOTO_EXIT;
-                    //         }
-                    //         goto GOTO_EXIT;
-                    //     }
-                    // }
-
                     
+                    generateExcel(agents, items, myExcel);
 
                     // Add items allocated to least spender also in the Component
                     for(int i:leastSpenderComponentAgents) {
@@ -420,7 +388,7 @@ int main()
         // auto stop = std::chrono::high_resolution_clock::now();
         // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 
-        // logging details
+        // LOG
         myExcel << endl;
         logfile << "" /*duration.count()*/ << " " << priceRiseStepsCount << " " << transferStepsCount << endl;
         minEnvyDiff_File << std::fixed << findMinEnvyDiff(agents) << endl;
@@ -429,7 +397,6 @@ int main()
         EFMaxBundlePrice_File << endl;
         minBundleValuation_File << endl;
         minAndEFMaxBundlePriceDiff_File << (EFMaxBundlePrice - minBundlePrice) << endl;
-        
         cout << endl << "------ Allocation is now pEF1+fPO -------" << endl << endl;
         printAgentAllocationMBB(agents, items);
 

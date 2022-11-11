@@ -185,6 +185,9 @@ double findEFMaxValuation(vector<AgentNodes> agents, vector<ItemNodes> items, in
         }
         EFMaxValuation = findBundleValuation(agent, agent, agents) - maxItemValuation;
     }
+    else {
+        cout << "ERR: Agent not specified. Returning 0.";
+    }
     return EFMaxValuation;
 }
 
@@ -324,34 +327,65 @@ long double findNashEFMaxWelfare(vector<AgentNodes> agents, vector<ItemNodes> it
     return nashWelfare;
 }
 
-int checkMetricMonotonicityWhenSameAgentbecomesLS(int LS, unordered_map<int, long double> &valuationMap, long double metric, 
+int checkMetricMonotonicityWhenSameAgentbecomesLS(string trend, int LS, unordered_map<int, long double> &valuationMap, long double metric, 
                                                     vector<AgentNodes> agents, vector<ItemNodes> items) {
 
+    // trend takes values: "increasing", "decreasing"
     // status 1: value not present or is monotonic, modified map value
     // status 2: sample was non-monotonic and EF1
     // status 0: sample was not monotonic and not EF1
-    if(valuationMap.find(LS)==valuationMap.end()) {
-        valuationMap.insert({LS, metric});
-        return 1;
-    } 
+    if(trend=="increasing") {
+        if(valuationMap.find(LS)==valuationMap.end()) {
+            valuationMap.insert({LS, metric});
+            return 1;
+        } 
 
-    long double prevValuation = valuationMap.at(LS);
-    if( doubleIsGreaterOrEqual(prevValuation, metric, EPS)==false ) {
-        valuationMap.at(LS) = metric;
-        return 1;
+        long double prevValuation = valuationMap.at(LS);
+        if( doubleIsGreaterOrEqual(prevValuation, metric, EPS)==false ) {
+            valuationMap.at(LS) = metric;
+            return 1;
+        }
+        else if( doubleIsGreater(prevValuation, metric, EPS) ) {
+            cout << "Exited: PREV_METRIC_AFTER_LS_AGAIN_GREATER, prev: " << prevValuation << " now: " << metric << endl;
+            
+            if(is_EF1_fPO(agents, items)==true) {
+                cout << "EF1 satisfied" << endl;
+                return 2;
+            }
+            else {
+                cout << "EF1 not satisfied." << endl;
+                return 0;
+            }
+        }
     }
-    else if( doubleIsGreater(prevValuation, metric, EPS) ) {
-        cout << "Exited: PREV_METRIC_AFTER_LS_AGAIN_GREATER, prev: " << prevValuation << " now: " << metric << endl;
-        
-        if(is_EF1_fPO(agents, items)==true) {
-            cout << "CHECK3: LS_TO_BS=1 & EF1=1" << endl;
-            return 2;
+    else if(trend=="decreasing") {
+        if(valuationMap.find(LS)==valuationMap.end()) {
+            valuationMap.insert({LS, metric});
+            return 1;
+        } 
+
+        long double prevValuation = valuationMap.at(LS);
+        if( doubleIsGreaterOrEqual(prevValuation, metric, EPS)==true ) {
+            valuationMap.at(LS) = metric;
+            return 1;
         }
         else {
-            cout << "CHECK3: LS_TO_BS=1 & EF1=0" << endl;
-            return 0;
+            cout << "Exited: PREV_METRIC_AFTER_LS_AGAIN_LESSER, prev: " << prevValuation << " now: " << metric << endl;
+            
+            if(is_EF1_fPO(agents, items)==true) {
+                cout << "CHECK3: LS_TO_BS=1 & EF1=1" << endl;
+                return 2;
+            }
+            else {
+                cout << "CHECK3: LS_TO_BS=1 & EF1=0" << endl;
+                return 0;
+            }
         }
     }
+    else {
+        cout << "ERR: Trend incorrectly specified." << endl;
+    }
+    
     return 1;
 }
 

@@ -109,5 +109,5 @@ void transferItem(int itemToTransfer, int transferFromAgent, int tranferToAgent,
 // brute checks
 bool is_PEF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items);
 bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items);
-int checkMetricMonotonicityWhenSameAgentbecomesLS(int LS, unordered_map<int, long double> &valuationMap, long double metric, 
+int checkMetricMonotonicityWhenSameAgentbecomesLS(string trend, int LS, unordered_map<int, long double> &valuationMap, long double metric, 
                                                     vector<AgentNodes> agents, vector<ItemNodes> items);

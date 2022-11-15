@@ -6,6 +6,7 @@
 void generateSample(int seed, string distribution_type, vector<double> parameters, vector<AgentNodes> &agents, vector<ItemNodes> &items, ofstream &sampleFile) {
 
     cout << "Generating Example... " <<  endl;
+    sampleFile << "Sample " << seed << endl;
 
     // populate item Utility map and determine price of each item
     vector<int> init_values(items.size(),0);
@@ -30,6 +31,7 @@ void generateSample(int seed, string distribution_type, vector<double> parameter
             sampleFile << endl;
             items[j].index = j;
         }
+        sampleFile << endl;
     };
     
     if(distribution_type == "uniform") {

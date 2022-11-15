@@ -8,7 +8,7 @@ int main()
 {
     // Define Inputs 
     bool DEBUG = true;                    // DEBUG Mode ON - true / OFF - false
-    int samples = 4420, iteration = 4419; // number of samples to run the code for
+    int samples = 1000, iteration = 0;      // number of samples to run the code for
     string dist_type = "uniform";         // distribution to generate valutions of agents from - set parameters below
     vector<double> parameters;
     if(dist_type == "uniform") 
@@ -78,6 +78,7 @@ int main()
         vector<AgentNodes> agents(n);
         vector<ItemNodes> items(m);
         unordered_map<int, long double> valuationMap;                    // stores LS and their corresponding metrics to track
+        unordered_map<string, vector<long double> > customValuationMap;     
         unordered_map<int, long double> afterReceivingItemValuationMap;  // stores LS and their corresponding valuations after directly receiving an item
         double minBundlePrice = numeric_limits<double>::max();
 
@@ -125,6 +126,7 @@ int main()
             int LS = -1;
             int BS = -1;
             int prevLS = -1;
+            int prevBS = -1;
             int path_found = 1; //denotes if path was found in the coming step or not
             unordered_set<int> leastSpenderComponentAgents, leastSpenderComponentItems; 
 
@@ -149,6 +151,7 @@ int main()
                     leastSpenderComponentAgents.clear();
                     leastSpenderComponentItems.clear();
                     prevLS = LS;
+                    prevBS = BS;
                     LS = leastSpenders[0];
                     BS = bigSpenders[0];
 
@@ -177,6 +180,7 @@ int main()
                 minAndEFMaxBundlePriceDiff_File << std::fixed << (EFMaxBundlePrice - minBundlePrice) << " ";
                 nashEFMaxWelfare_File << std::fixed << findNashEFMaxWelfare(agents, items) << " ";
                 DEBUG?(cout << "Least Spenders " << LS << "'s Valuation " << minBundleValuation << endl):(cout << "");
+                DEBUG?(cout << "Big Spenders " << BS << "'s Valuation " << findBundleValuation(BS, BS, agents) << endl):(cout << "");
                 // generateExcel(agents, items, myExcel);
 
                 
@@ -264,12 +268,39 @@ int main()
                 // ------------------------------------------------------------------------------- 3.
 
                 if(prevLS!=LS && prevLS!=-1) {
+                    // log data when any least spender repeats
+                    double LSVal = findBundleValuation(LS, LS, agents);
+                    double BSVal = findBundleValuation(BS, LS, agents);
+                    string id = to_string(LS) + "-" + to_string(BS);
+                    if(customValuationMap.find(id)==customValuationMap.end()) {
+                        customValuationMap.insert({id, {LSVal, BSVal}});
+                    }
+                    else {
+                        if(doubleIsGreaterOrEqual(LSVal, customValuationMap[id][0], EPS)==false) {
+                            double LSValDiff = customValuationMap[id][0] - LSVal;
+                            double BSValDiff = customValuationMap[id][1] - BSVal;
+                            cout << "\u0394LS: " << LSValDiff << " \u0394BS: " << BSValDiff << endl;
+                            if(doubleIsGreater(BSValDiff, abs(LSValDiff), EPS)) cout <<  "Good" << endl;
+                            else cout << "BAD" << endl;
+                        }
+                        else {
+                            customValuationMap[id][0] = LSVal;
+                            customValuationMap[id][1] = BSVal;
+
+                        }
+                    }
                     long double metric = (long double) (findBundleValuation(LS, LS, agents));
+                    if(valuationMap.find(LS)!=valuationMap.end()) {
+                        generateExcel(agents, items, myExcel);
+                    }
+                    else {
+                        valuationMap.insert({LS, 0});
+                    }
                     // valuationMap[prevLS] = findBundleValuation(prevLS, prevLS, agents) - agents[prevLS].itemUtilityMap[agents[prevLS].allocationItems.back()->index];
                     // long double metric = (long double) findEFMaxValuation(agents, items, BS) - findBundleValuation(LS, BS, agents);
-                    int status = checkMetricMonotonicityWhenSameAgentbecomesLS("increasing", LS, valuationMap, metric, agents, items);
-                    if(status==2) goto GOTO_NEXT;
-                    else if(status==0) goto GOTO_EXIT;
+                    // int status = checkMetricMonotonicityWhenSameAgentbecomesLS("increasing", LS, valuationMap, metric, agents, items);
+                    // if(status==2) goto GOTO_NEXT;
+                    // else if(status==0) goto GOTO_EXIT;
                 }
 
 
@@ -336,7 +367,7 @@ int main()
                         break;
                     }
                     
-                    generateExcel(agents, items, myExcel);
+                    // generateExcel(agents, items, myExcel);
 
                     // Add items allocated to least spender also in the Component
                     for(int i:leastSpenderComponentAgents) {

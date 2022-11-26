@@ -1,6 +1,7 @@
 #include <bits/stdc++.h>
 #include <pcg_random.hpp>
 #include "output.h"
+#include "fileLogger.h"
 #define EPS 0.0001f
 using namespace std;
 
@@ -8,7 +9,7 @@ int main()
 {
     // Define Inputs 
     bool DEBUG = true;                    // DEBUG Mode ON - true / OFF - false
-    int samples = 1000, iteration = 0;      // number of samples to run the code for
+    int samples = 1000, iteration = 0;    // number of samples to run the code for
     string dist_type = "uniform";         // distribution to generate valutions of agents from - set parameters below
     vector<double> parameters;
     if(dist_type == "uniform") 
@@ -20,40 +21,8 @@ int main()
     else if(dist_type=="normal")
         parameters = {5,1};               // [mean, std]
 
-    // defining log files
-    ofstream myExcel;
-    ofstream logfile;                          // logs the entire output
-    ofstream sampleFile;                       // logs the sample
-    ofstream minEnvyDiff_File;                 // tracks the minimum of [d_i(X_h) - d_i(X_i) + max(d_ij)] over all i.j 
-    ofstream minBundlePrice_File;              // tracks the minimum bundle price over iterations
-    ofstream EFMaxValuation_File;              // tracks di(Xi) - di_max = disutility of least spender after removing highest disutility chore
-    ofstream EFMaxBundlePrice_File;            // tracks EFMax bundle price over iterations
-    ofstream nashEFMaxWelfare_File;            // tracks product of EFMax Valuations of all agents ~ Nash Welfare (if > 0)
-    ofstream minBundleValuation_File;          // tracks the disutility/valuation of the minimum bundle
-    ofstream EFMaxPlusMinValuation_File;       // tracks d_i(Xi) - d_i_max + d_i_min of least spender 
-    ofstream minAndEFMaxBundlePriceDiff_File;  // tracks the difference between the minimum bundle price and the EFMax bundle Price
-    ofstream LSValAndBSEFMaxValDiff_wrtBS_File; // tracks d_BS(X_LS) - d_BS(X_BS\g) after every transfer path completes
-
-    myExcel.open("./Logs/ExcelLog.txt", std::ios_base::app);
-    logfile.open("./Logs/Log.txt");
-    sampleFile.open("./Logs/Samples.txt");
-    minEnvyDiff_File.open("./Logs/MinEnvyDiff.txt");
-    minBundlePrice_File.open("./Logs/MinBundlePrice.txt");
-    EFMaxValuation_File.open("./Logs/EFMaxValuation.txt");
-    EFMaxBundlePrice_File.open("./Logs/EFMaxBundlePrice.txt");
-    nashEFMaxWelfare_File.open("./Logs/nashEFMaxWelfare_File.txt");
-    minBundleValuation_File.open("./Logs/MinBundleValuation.txt");
-    EFMaxPlusMinValuation_File.open("./Logs/EFMaxPlusMinValuation_File.txt");
-    minAndEFMaxBundlePriceDiff_File.open("./Logs/MinAndEFMaxBundlePriceDiff.txt");
-    LSValAndBSEFMaxValDiff_wrtBS_File.open("./Logs/LSValAndBSEFMaxValDiff_wrtBS.txt");
-    
-    // setting file headers
-    logfile << "Iteration" << " " << "Agents" << " " << "Items" << " " << "Duration" << " " << "Price_Rise_Steps" << " " << "Transfer_Steps" << endl;
-    minEnvyDiff_File.precision(1);
-    EFMaxValuation_File.precision(1);
-    nashEFMaxWelfare_File.precision(1);
-    EFMaxPlusMinValuation_File.precision(1);
-    minAndEFMaxBundlePriceDiff_File.precision(1);
+    // define file paths and initial headers and settings
+    fileHandler f = fileHandler();
 
     // run until number of samples
     while(iteration < samples) {
@@ -78,34 +47,26 @@ int main()
         vector<AgentNodes> agents(n);
         vector<ItemNodes> items(m);
         unordered_map<int, long double> valuationMap;                    // stores LS and their corresponding metrics to track
-        unordered_map<string, vector<long double> > customValuationMap;     
+        unordered_map<string, long double> customValuationMap;     
+        unordered_set<string> checkRepeat;
         unordered_map<int, long double> afterReceivingItemValuationMap;  // stores LS and their corresponding valuations after directly receiving an item
         double minBundlePrice = numeric_limits<double>::max();
 
         // generate the sample
-        generateSample(iteration, dist_type, parameters, agents, items, sampleFile);
+        generateSample(iteration, dist_type, parameters, agents, items, f.sampleFile);
 
         // populate MBB ratio/items, bundle price for every agent, an initial allocation and least spender's spending (pass by reference)
         populateInstance(agents, items, minBundlePrice);
 
         // find Least Spenders given minimum bundle price and estimate EFMax Bundle Price
-        vector<int> leastSpenders = findLeastSpenders(agents, minBundlePrice);
         double EFMaxBundlePrice = findEFMaxBundlePrice(agents, items);
+        vector<int> leastSpenders = findLeastSpenders(agents, minBundlePrice);
         vector<int> bigSpenders = findBigSpenders(agents, items, EFMaxBundlePrice);
 
         // LOGS
         cout << "Number of Agents: " << n << "; Number of Items: " << m << endl;
         printUtilityMap(agents.size(), items.size(), agents, items);
-
-        myExcel << endl << "Sample-" <<  iteration << endl;
-        logfile << iteration << " " << n << " " << m << " ";
-        minEnvyDiff_File << iteration << " ";
-        minBundlePrice_File << iteration << " ";
-        EFMaxValuation_File << iteration << " ";
-        EFMaxBundlePrice_File << iteration << " ";
-        nashEFMaxWelfare_File << iteration << " ";
-        minBundleValuation_File << iteration << " ";
-        EFMaxPlusMinValuation_File << iteration << " ";
+        f.logIteration(iteration, n, m);
 
         DEBUG?(cout << "Least Spenders" << " -> "):(cout << "");
         DEBUG?(printIntVector(leastSpenders)):(printIntVector({}));
@@ -118,8 +79,6 @@ int main()
 
         // 1.-> Do BFS with Least Spender as source to find path violator----------------------------------------------------------------------------------------1.
         while( (minBundlePrice < EFMaxBundlePrice) && doubleIsEqual(minBundlePrice, EFMaxBundlePrice, EPS)==false ) {
-
-            cout << "----> Allocation not currently pEF1" << endl;
 
             // 2.-> finding alternating paths from LS to path violater --------------------------------------------------------2.
               
@@ -163,8 +122,8 @@ int main()
                     DEBUG?(cout << "Big Spenders -> "):(cout<< "");
                     DEBUG?(printIntVector(bigSpenders)):(printIntVector({}));
 
-                    minBundlePrice_File << minBundlePrice << " ";
-                    EFMaxBundlePrice_File << EFMaxBundlePrice << " "; 
+                    // minBundlePrice_File << minBundlePrice << " ";
+                    f.logValIntoFile(f.EFMaxBundlePrice_File, EFMaxBundlePrice);
                 }
                 else {
                     // else if no path was found but there exists multiple lease spenders move to next LS
@@ -172,18 +131,20 @@ int main()
                 }   
 
                 // LOG
-                double minBundleValuation = findBundleValuation(LS, LS, agents);
-                minEnvyDiff_File << std::fixed << findMinEnvyDiff(agents) << " ";
-                minBundleValuation_File << minBundleValuation << " " << LS << " ; ";
-                EFMaxValuation_File << findEFMaxValuation(agents, items, LS) << LS << ";";
-                EFMaxPlusMinValuation_File << findEFMaxPlusMinValuation(agents, items, LS) << LS << " ";
-                minAndEFMaxBundlePriceDiff_File << std::fixed << (EFMaxBundlePrice - minBundlePrice) << " ";
-                nashEFMaxWelfare_File << std::fixed << findNashEFMaxWelfare(agents, items) << " ";
-                DEBUG?(cout << "Least Spenders " << LS << "'s Valuation " << minBundleValuation << endl):(cout << "");
-                DEBUG?(cout << "Big Spenders " << BS << "'s Valuation " << findBundleValuation(BS, BS, agents) << endl):(cout << "");
-                // generateExcel(agents, items, myExcel);
+                if(prevLS!=LS) {
+                    double minBundleValuation = findBundleValuation(LS, LS, agents);
+                    f.logValIntoFile(f.minBundlePrice_File, minBundlePrice);
+                    f.logValIntoFile(f.minEnvyDiff_File, findMinEnvyDiff(agents));
+                    f.logValIntoFile(f.minBundleValuation_File, minBundleValuation, LS);
+                    f.logValIntoFile(f.EFMaxValuation_File, findEFMaxValuation(agents, items, LS), LS);
+                    f.logValIntoFile(f.EFMaxPlusMinValuation_File, findEFMaxPlusMinValuation(agents, items, LS), LS);
+                    f.logValIntoFile(f.minAndEFMaxBundlePriceDiff_File, (EFMaxBundlePrice - minBundlePrice));
+                    f.logValIntoFile(f.nashEFMaxWelfare_File, findNashEFMaxWelfare(agents, items));
 
-                
+                    generateExcel(agents, items, f.myExcel);
+                    DEBUG?(cout << "Least Spenders " << LS << "'s Valuation " << minBundleValuation << endl):(cout << "");
+                    DEBUG?(cout << "Big Spenders " << BS << "'s Valuation " << findBundleValuation(BS, BS, agents) << endl):(cout << "");
+                }
                 
                 // insert the metric to check for monotonicity in a map
                 // long double metric = (long double) (findBundleValuation(LS, BS, agents));
@@ -268,40 +229,56 @@ int main()
                 // ------------------------------------------------------------------------------- 3.
 
                 if(prevLS!=LS && prevLS!=-1) {
-                    // log data when any least spender repeats
-                    double LSVal = findBundleValuation(LS, LS, agents);
-                    double BSVal = findBundleValuation(BS, LS, agents);
                     string id = to_string(LS) + "-" + to_string(BS);
                     if(customValuationMap.find(id)==customValuationMap.end()) {
-                        customValuationMap.insert({id, {LSVal, BSVal}});
+                        customValuationMap.insert({id, 0});
                     }
                     else {
-                        if(doubleIsGreaterOrEqual(LSVal, customValuationMap[id][0], EPS)==false) {
-                            double LSValDiff = customValuationMap[id][0] - LSVal;
-                            double BSValDiff = customValuationMap[id][1] - BSVal;
-                            cout << "\u0394LS: " << LSValDiff << " \u0394BS: " << BSValDiff << endl;
-                            if(doubleIsGreater(BSValDiff, abs(LSValDiff), EPS)) cout <<  "Good" << endl;
-                            else cout << "BAD" << endl;
+                        if(customValuationMap[id]<0.0000) {
+                            cout << "Bad" << endl;
+                            cout << customValuationMap[id] << endl;
                         }
                         else {
-                            customValuationMap[id][0] = LSVal;
-                            customValuationMap[id][1] = BSVal;
-
+                            cout << "Good: " << customValuationMap[id] << endl;
                         }
+                        customValuationMap[id] =  0;
                     }
-                    long double metric = (long double) (findBundleValuation(LS, LS, agents));
-                    if(valuationMap.find(LS)!=valuationMap.end()) {
-                        generateExcel(agents, items, myExcel);
-                    }
-                    else {
-                        valuationMap.insert({LS, 0});
-                    }
+                }
+                // if(prevLS!=LS && prevLS!=-1) {
+                //     // log data when any least spender repeats
+                //     double LSVal = findBundleValuation(LS, LS, agents);
+                //     double BSVal = findBundleValuation(BS, LS, agents);
+                //     string id = to_string(LS) + "-" + to_string(BS);
+                //     if(customValuationMap.find(id)==customValuationMap.end()) {
+                //         customValuationMap.insert({id, 0});
+                //     }
+                //     else {
+                //         if(doubleIsGreaterOrEqual(LSVal, customValuationMap[id][0], EPS)==false) {
+                //             double LSValDiff = customValuationMap[id][0] - LSVal;
+                //             double BSValDiff = customValuationMap[id][1] - BSVal;
+                //             cout << "\u0394LS: " << LSValDiff << " \u0394BS: " << BSValDiff << endl;
+                //             if(doubleIsGreater(BSValDiff, abs(LSValDiff), EPS)) cout <<  "Good" << endl;
+                //             else cout << "BAD" << endl;
+                //         }
+                //         else {
+                //             customValuationMap[id][0] = LSVal;
+                //             customValuationMap[id][1] = BSVal;
+
+                //         }
+                //     }
+                //     long double metric = (long double) (findBundleValuation(LS, LS, agents));
+                //     if(valuationMap.find(LS)!=valuationMap.end()) {
+                //         generateExcel(agents, items, myExcel);
+                //     }
+                //     else {
+                //         valuationMap.insert({LS, 0});
+                //     }
                     // valuationMap[prevLS] = findBundleValuation(prevLS, prevLS, agents) - agents[prevLS].itemUtilityMap[agents[prevLS].allocationItems.back()->index];
                     // long double metric = (long double) findEFMaxValuation(agents, items, BS) - findBundleValuation(LS, BS, agents);
                     // int status = checkMetricMonotonicityWhenSameAgentbecomesLS("increasing", LS, valuationMap, metric, agents, items);
                     // if(status==2) goto GOTO_NEXT;
                     // else if(status==0) goto GOTO_EXIT;
-                }
+                // }
 
 
 
@@ -334,7 +311,40 @@ int main()
                     // }
                     
                     // perform transfer, update bundles and graph
+                    if(prevLS!=-1) {
+                        string id = to_string(LS) + "-" + to_string(BS);
+                        // if(customValuationMap.find(id)==customValuationMap.end()) {
+                        //     customValuationMap.insert({id, 0});
+                        // }
+                        // else {
+                        //     if(customValuationMap[id]<0.0000) {
+                        //         cout << "Bad" << endl;
+                        //         cout << customValuationMap[id] << endl;
+                        //     }
+                        //     customValuationMap[id] =  0;
+                        // }
+
+                        for(auto& instanceId : customValuationMap) {
+                            instanceId.second+=(agents[predAgentToItem[itemViolater]].itemUtilityMap[itemViolater]);
+                            instanceId.second-=(agents[pathViolater].itemUtilityMap[itemViolater]);
+                        }
+                    }
+
                     transferItem(itemViolater, pathViolater, predAgentToItem[itemViolater], agents, items);
+
+                    string myid = to_string(itemViolater) + "_" + to_string(pathViolater) + "_" + to_string(predAgentToItem[itemViolater]);
+                    string myidc = to_string(itemViolater) + "_" + to_string(predAgentToItem[itemViolater]) + "_" + to_string(pathViolater);
+                    if(checkRepeat.find(myid)==checkRepeat.end()) {
+                        if(checkRepeat.find(myidc)!=checkRepeat.end()) {
+                            cout << "REPEAT" << endl;
+                            f.logValIntoFile(f.repeatFile, findBundleValuation(LS, LS, agents));
+                            f.repeatFile << findBundleValuation(LS, LS, agents) << " ";
+                        }
+                        checkRepeat.insert(myid);
+                    }
+                    else {
+                        cout << "SAME FOUND" << endl;
+                    }
 
                     // // if the LS directly receives an item, log it
                     // if(predAgentToItem[itemViolater]==LS) {
@@ -357,7 +367,6 @@ int main()
                     // }
 
                     transferStepsCount++;
-                    // printAgentAllocationMBB(agents, items);
                     path_found = 1;
                 }
                 else if(q.empty()) {
@@ -367,8 +376,6 @@ int main()
                         break;
                     }
                     
-                    // generateExcel(agents, items, myExcel);
-
                     // Add items allocated to least spender also in the Component
                     for(int i:leastSpenderComponentAgents) {
                         for(ItemNodes* item: agents[i].allocationItems) {
@@ -406,6 +413,9 @@ int main()
                     path_found = 1;
                     priceRiseStepsCount++;
                 }
+                if(is_EF1_fPO(agents, items)==true) {
+                    f.minBundlePrice_File << "EF1" << " ";
+                }
             }
             // -------------------------------------------------------------------------------------------------------------2.
             
@@ -420,16 +430,11 @@ int main()
         // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 
         // LOG
-        myExcel << endl;
-        logfile << "" /*duration.count()*/ << " " << priceRiseStepsCount << " " << transferStepsCount << endl;
-        minEnvyDiff_File << std::fixed << findMinEnvyDiff(agents) << endl;
-        minBundlePrice_File << endl;
-        EFMaxValuation_File << endl;
-        EFMaxBundlePrice_File << endl;
-        minBundleValuation_File << endl;
-        minAndEFMaxBundlePriceDiff_File << (EFMaxBundlePrice - minBundlePrice) << endl;
-        cout << endl << "------ Allocation is now pEF1+fPO -------" << endl << endl;
-        printAgentAllocationMBB(agents, items);
+        
+        f.logfile << "" /*duration.count()*/ << " " << priceRiseStepsCount << " " << transferStepsCount;
+        f.minEnvyDiff_File << std::fixed << findMinEnvyDiff(agents);
+        f.minAndEFMaxBundlePriceDiff_File << (EFMaxBundlePrice - minBundlePrice);
+        f.nextIteration();
 
         // Final Brute Force Check for pEF1
         if(is_PEF1_fPO(agents, items)==false || is_EF1_fPO(agents, items)==false) {
@@ -437,6 +442,8 @@ int main()
             return 0;
         }
         else {
+            cout << endl << "------ Allocation is now pEF1+fPO -------" << endl << endl;
+            printAgentAllocationMBB(agents, items);
             cout << "ALLOCATION - CORRECT" << endl;
         }
 
@@ -445,18 +452,10 @@ int main()
     }
 
     // closing log files
-    myExcel.close();
-    logfile.close();
-    sampleFile.close();
-    minEnvyDiff_File.close();
-    minBundlePrice_File.close();
-    EFMaxValuation_File.close();
-    EFMaxBundlePrice_File.close();
-    minBundleValuation_File.close();
-    minAndEFMaxBundlePriceDiff_File.close();
+    f.closeFiles();
 
     GOTO_EXIT:
-    system("canberra-gtk-play -f ~/Downloads/pno-cs.wav"); // play sound once the program finishes LOL!
+    system("canberra-gtk-play -f ~/Downloads/pno-cs.wav"); // play sound once the program finishes
     return 0;
 }
 

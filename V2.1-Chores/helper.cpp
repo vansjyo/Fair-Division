@@ -120,7 +120,7 @@ bool doubleIsGreater(double v1, double v2, double epsilon) {
 }
 
 // find the minimum Bundle price
-double findMinBundlePrice(vector<AgentNodes> agents) {
+double findMinBundlePrice(vector<AgentNodes> &agents) {
     double minBundlePrice = numeric_limits<double>::max();
     for(int i = 0; i < agents.size(); i++) {
         minBundlePrice = fmin(minBundlePrice, agents[i].bundlePrice);
@@ -129,7 +129,7 @@ double findMinBundlePrice(vector<AgentNodes> agents) {
 }
 
 // find all Least Spenders based on minBundle Price
-vector<int> findLeastSpenders(vector<AgentNodes> agents, double minBundlePrice) {
+vector<int> findLeastSpenders(vector<AgentNodes> &agents, double minBundlePrice) {
     vector<int> leastSpenders;
     for(int i = 0; i < agents.size(); i++) {
         if(doubleIsEqual(agents[i].bundlePrice, minBundlePrice, EPS)) 
@@ -138,7 +138,7 @@ vector<int> findLeastSpenders(vector<AgentNodes> agents, double minBundlePrice) 
     return leastSpenders;
 }
 
-vector<int> findBigSpenders(vector<AgentNodes> agents, vector<ItemNodes> items, double EFMaxBundlePrice) {
+vector<int> findBigSpenders(vector<AgentNodes> &agents, vector<ItemNodes> &items, double EFMaxBundlePrice) {
     vector<int> bigSpenders;
     for(AgentNodes it:agents) {
         double EFPrice = findEFMaxBundlePrice(agents, items, it.index);
@@ -150,7 +150,7 @@ vector<int> findBigSpenders(vector<AgentNodes> agents, vector<ItemNodes> items, 
 }
 
 // find Big Spender's (agent with highest utility after removing highest utility item from their bundle) EFMAx Bundle Price or EFMax Bundle Price of agent
-double findEFMaxBundlePrice(vector<AgentNodes> agents, vector<ItemNodes> items, int agent) {
+double findEFMaxBundlePrice(vector<AgentNodes> &agents, vector<ItemNodes> &items, int agent) {
     double EFMaxBundlePrice = 0;
     // if agent is specified, find EFMax Bundle Price of agent
     if(agent!=-1) {
@@ -176,24 +176,18 @@ double findEFMaxBundlePrice(vector<AgentNodes> agents, vector<ItemNodes> items, 
 }
 
 // find EFMax Valuation of an agent 
-double findEFMaxValuation(vector<AgentNodes> agents, vector<ItemNodes> items, int agent) {
+double findEFMaxValuation(int bundleAgent, int referenceAgent, vector<AgentNodes> &agents) {
     double EFMaxValuation = 0;
-    // if agent is specified, find EFMax Valuation of agent
-    if(agent!=-1) {
-        double maxItemValuation = 0;
-        for(int j = 0; j < agents[agent].allocationItems.size(); j++) {
-            int item = agents[agent].allocationItems[j]->index;
-            maxItemValuation = fmax(maxItemValuation, agents[agent].itemUtilityMap[item]);
-        }
-        EFMaxValuation = findBundleValuation(agent, agent, agents) - maxItemValuation;
+    double maxItemValuation = 0;
+    for(int j = 0; j < agents[bundleAgent].allocationItems.size(); j++) {
+        int item = agents[bundleAgent].allocationItems[j]->index;
+        maxItemValuation = fmax(maxItemValuation, agents[referenceAgent].itemUtilityMap[item]);
     }
-    else {
-        cout << "ERR: Agent not specified. Returning 0.";
-    }
+    EFMaxValuation = findBundleValuation(bundleAgent, referenceAgent, agents) - maxItemValuation;
     return EFMaxValuation;
 }
 
-double findEFMaxPlusMinValuation(vector<AgentNodes> agents, vector<ItemNodes> items, int agent) {
+double findEFMaxPlusMinValuation(vector<AgentNodes> &agents, vector<ItemNodes> &items, int agent) {
     double EFMaxValuation = 0;
     // if agent is specified, find EFMax Valuation of agent
     if(agent!=-1) {
@@ -231,7 +225,7 @@ void transferItem(int itemToTransfer, int transferFromAgent, int transferToAgent
 }
 
 // compute ratio aplha1
-double computeAlpha1(unordered_set<int> LSComponentAgents, unordered_set<int> LSComponentItems, vector<AgentNodes> agents, vector<ItemNodes> items) {
+double computeAlpha1(unordered_set<int> LSComponentAgents, unordered_set<int> LSComponentItems, vector<AgentNodes> &agents, vector<ItemNodes> &items) {
     double alpha1 = numeric_limits<double>::min();
     for(auto& i:LSComponentAgents) {
         for(int j = 0; j < items.size(); j++) {
@@ -244,7 +238,7 @@ double computeAlpha1(unordered_set<int> LSComponentAgents, unordered_set<int> LS
 }
 
 // compute ratio aplha2
-double computeAlpha2(unordered_set<int> LSComponentAgents,  vector<AgentNodes> agents, double minBundlePrice) {
+double computeAlpha2(unordered_set<int> LSComponentAgents,  vector<AgentNodes> &agents, double minBundlePrice) {
     double alpha2 = numeric_limits<double>::min();
     if(doubleIsEqual(minBundlePrice, 0, EPS))
         return 0.0f;
@@ -291,7 +285,7 @@ void updateAgentBundles(unordered_set<int> LSComponentAgents, unordered_set<int>
     }
 }
 
-double findBundleValuation(int bundleAgent, int referenceAgent, vector<AgentNodes> agents) {
+double findBundleValuation(int bundleAgent, int referenceAgent, vector<AgentNodes> &agents) {
     double valuation = 0;
     for(ItemNodes* item:agents[bundleAgent].allocationItems) {
         valuation+=agents[referenceAgent].itemUtilityMap[item->index];
@@ -299,7 +293,7 @@ double findBundleValuation(int bundleAgent, int referenceAgent, vector<AgentNode
     return valuation;
 }
 
-double findMinEnvyDiff(vector<AgentNodes> agents) {
+double findMinEnvyDiff(vector<AgentNodes> &agents) {
     double minEnvyDiff = numeric_limits<double>::max();
     for(int i = 0; i < agents.size(); i++) {
 
@@ -318,10 +312,10 @@ double findMinEnvyDiff(vector<AgentNodes> agents) {
     return minEnvyDiff;
 }
 
-long double findNashEFMaxWelfare(vector<AgentNodes> agents, vector<ItemNodes> items) {
+long double findNashEFMaxWelfare(vector<AgentNodes> &agents, vector<ItemNodes> &items) {
     long double nashWelfare = 1;
     for(int i = 0; i < agents.size(); i++) {
-        double EFMaxValuation = findEFMaxValuation(agents, items, i);
+        double EFMaxValuation = findEFMaxValuation(i, i, agents);
         if(EFMaxValuation > 0 &&  doubleIsEqual(EFMaxValuation, 0, EPS)==false) {
             nashWelfare*=EFMaxValuation;
         }
@@ -330,7 +324,7 @@ long double findNashEFMaxWelfare(vector<AgentNodes> agents, vector<ItemNodes> it
 }
 
 int checkMetricMonotonicityWhenSameAgentbecomesLS(string trend, int LS, unordered_map<int, long double> &valuationMap, long double metric, 
-                                                    vector<AgentNodes> agents, vector<ItemNodes> items) {
+                                                    vector<AgentNodes> &agents, vector<ItemNodes> &items) {
 
     // trend takes values: "increasing", "decreasing"
     // status 1: value not present or is monotonic, modified map value
@@ -392,7 +386,7 @@ int checkMetricMonotonicityWhenSameAgentbecomesLS(string trend, int LS, unordere
 }
 
 // check if the pEF1 condition is satisfied for an allocation
-bool is_PEF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items) {
+bool is_PEF1_fPO(vector<AgentNodes> &agents, vector<ItemNodes> &items) {
     for(int i = 0; i < agents.size(); i++) {
         for(int k = 0; k < agents.size(); k++) {
 
@@ -409,7 +403,7 @@ bool is_PEF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items) {
 }
 
 // check if the EF1 condition is satisfied for an allocation
-bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items) {
+bool is_EF1_fPO(vector<AgentNodes> &agents, vector<ItemNodes> &items) {
 
     for(int i = 0; i < agents.size(); i++) {
         for(int k = 0; k < agents.size(); k++) {

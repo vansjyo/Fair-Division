@@ -87,27 +87,27 @@ bool doubleIsGreaterOrEqual(double v1, double v2, double epsilon);
 bool doubleIsGreater(double v1, double v2, double epsilon);
 
 // metrics
-double findMinBundlePrice(vector<AgentNodes> agents);
-double findEFMaxBundlePrice(vector<AgentNodes> agents, vector<ItemNodes> items, int agent=-1);
-double findEFMaxPlusMinValuation(vector<AgentNodes> agents, vector<ItemNodes> items, int agent=-1);
-double findBundleValuation(int bundleAgent, int referenceAgent, vector<AgentNodes> agents);
-double findEFMaxValuation(vector<AgentNodes> agents, vector<ItemNodes> items, int agent=-1);
-long double findNashEFMaxWelfare(vector<AgentNodes> agents, vector<ItemNodes> items);
-double findMinEnvyDiff(vector<AgentNodes> agents);
+double findMinBundlePrice(vector<AgentNodes> &agents);
+double findEFMaxBundlePrice(vector<AgentNodes> &agents, vector<ItemNodes> &items, int agent=-1);
+double findEFMaxPlusMinValuation(vector<AgentNodes> &agents, vector<ItemNodes> &items, int agent=-1);
+double findBundleValuation(int bundleAgent, int referenceAgent, vector<AgentNodes> &agents);
+double findEFMaxValuation(int bundleAgent, int referenceAgent, vector<AgentNodes> &agents);
+long double findNashEFMaxWelfare(vector<AgentNodes> &agents, vector<ItemNodes> &items);
+double findMinEnvyDiff(vector<AgentNodes> &agents);
 
 // find agents
-vector<int> findLeastSpenders( vector<AgentNodes> agents, double minBundlePrice);
-vector<int> findBigSpenders(vector<AgentNodes> agents, vector<ItemNodes> items, double EFMaxBundlePrice);
+vector<int> findLeastSpenders( vector<AgentNodes> &agents, double minBundlePrice);
+vector<int> findBigSpenders(vector<AgentNodes> &agents, vector<ItemNodes> &items, double EFMaxBundlePrice);
 
 // price increase procedures
-double computeAlpha1(unordered_set<int> LSComponentAgents, unordered_set<int> LSComponentItems, vector<AgentNodes> agents, vector<ItemNodes> items);
-double computeAlpha2(unordered_set<int> LSComponentAgents,  vector<AgentNodes> agents, double minBundlePrice);
+double computeAlpha1(unordered_set<int> LSComponentAgents, unordered_set<int> LSComponentItems, vector<AgentNodes> &agents, vector<ItemNodes> &items);
+double computeAlpha2(unordered_set<int> LSComponentAgents,  vector<AgentNodes> &agents, double minBundlePrice);
 void updateItemPrices(unordered_set<int> LSComponentItems, vector<ItemNodes> &items, double beta);
 void updateAgentBundles(unordered_set<int> LSComponentAgents, unordered_set<int> LSComponentItems, vector<AgentNodes> &agents, vector<ItemNodes> &items, double beta);
 void transferItem(int itemToTransfer, int transferFromAgent, int tranferToAgent, vector<AgentNodes> &agents, vector<ItemNodes> &items);
 
 // brute checks
-bool is_PEF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items);
-bool is_EF1_fPO(vector<AgentNodes> agents, vector<ItemNodes> items);
+bool is_PEF1_fPO(vector<AgentNodes> &agents, vector<ItemNodes> &items);
+bool is_EF1_fPO(vector<AgentNodes> &agents, vector<ItemNodes> &items);
 int checkMetricMonotonicityWhenSameAgentbecomesLS(string trend, int LS, unordered_map<int, long double> &valuationMap, long double metric, 
-                                                    vector<AgentNodes> agents, vector<ItemNodes> items);
+                                                    vector<AgentNodes> &agents, vector<ItemNodes> &items);

@@ -17,6 +17,9 @@ class fileHandler {
     ofstream EFMaxPlusMinValuation_File;       // tracks d_i(Xi) - d_i_max + d_i_min of least spender 
     ofstream minAndEFMaxBundlePriceDiff_File;  // tracks the difference between the minimum bundle price and the EFMax bundle Price
     ofstream LSValAndBSEFMaxValDiff_wrtBS_File; // tracks d_BS(X_LS) - d_BS(X_BS\g) after every transfer path completes
+
+    vector<double> minBundlePrice_vec;
+    vector<double> EFMAxBundlePrice_vec;
     
 
     fileHandler() {
@@ -66,6 +69,9 @@ class fileHandler {
         EFMaxBundlePrice_File << endl;
         minBundleValuation_File << endl;
         minAndEFMaxBundlePriceDiff_File << endl;
+
+        minBundlePrice_vec.clear();
+        EFMAxBundlePrice_vec.clear();
     }
 
     void closeFiles() {

@@ -1,7 +1,9 @@
-// #include <bits/stdc++.h>
 #include "output.h"
+#include <sciplot/sciplot.hpp>
 
-void printUtilityMap(int n, int m, vector<AgentNodes> agents, vector<ItemNodes> items) {
+using namespace std;
+
+void printUtilityMap(int n, int m, vector<AgentNodes> &agents, vector<ItemNodes> &items) {
     cout << "Printing Sample: " << endl;
     for(int i = -1; i < n; i++) {
         if(i<0) cout << left << setw(nameWidth) << setfill(separator) << "             ";
@@ -28,7 +30,7 @@ void printIntSet(unordered_set<int> v) {
     cout << endl;
 }
 
-void printAgentAllocationMBB(vector<AgentNodes> agents, vector<ItemNodes> items) {
+void printAgentAllocationMBB(vector<AgentNodes> &agents, vector<ItemNodes> &items) {
     cout << endl << "---------- Allocations: ----------- " << endl;
 	for(int i = 0; i < agents.size(); i++) {
 		agents[i].printAgentAllocation();
@@ -57,7 +59,7 @@ void printAgentAllocationMBB(vector<AgentNodes> agents, vector<ItemNodes> items)
     cout << endl << "----------------------------------- " << endl << endl;
 }
 
-void printRevisedPrices(vector<ItemNodes> items) {
+void printRevisedPrices(vector<ItemNodes> &items) {
     cout << "------------- P(j): -------------- " << endl;
 	for(int j = 0; j < items.size(); j++) {
         cout << left << setw(nameWidth) << setfill(separator) << to_string(j)+":[ " << setprecision(11) << items[j].price << " ] ";
@@ -67,7 +69,7 @@ void printRevisedPrices(vector<ItemNodes> items) {
 }
 
 // generate an Excel friendly output of each iteration within a sample
-void generateExcel(vector<AgentNodes> agents, vector<ItemNodes> items, ofstream &fileHandle) {
+void generateExcel(vector<AgentNodes> &agents, vector<ItemNodes> &items, ofstream &fileHandle) {
     fileHandle << endl << "Agent ";
     for(auto agent: agents) 
         fileHandle << agent.index << " ";
@@ -94,7 +96,6 @@ void generateExcel(vector<AgentNodes> agents, vector<ItemNodes> items, ofstream 
     for(auto agent: agents) {
         for(auto item: agent.allocationItems)
             fileHandle << item->index << ";";
-
         fileHandle << " ";
     }
 
@@ -102,9 +103,29 @@ void generateExcel(vector<AgentNodes> agents, vector<ItemNodes> items, ofstream 
     for(auto agent: agents) {
         for(auto item: agent.MBBItems)
             fileHandle << item->index << ";";
-
         fileHandle << " ";
     }
     fileHandle << endl << "----------------";
 
+}
+
+void drawVerificationCurve(int iteration, vector<double> &vecA, string vecA_desc, vector<double> &vecB, string vecB_desc) {
+    // source: https://sciplot.github.io/
+    cout << "Printing the Graph...\n";
+    if(vecA.size()<2 || vecB.size()<2) return;
+    
+
+    // plot the graph using these 2 y values
+    cout << vecA.size() << " " << vecB.size() << endl;
+    sciplot::Vec x = sciplot::linspace(1, vecA.size(), vecA.size()-1);
+    sciplot::Plot2D plot;
+    plot.drawCurve(x, vecA).label(vecA_desc).lineWidth(0);
+    plot.drawCurve(x, vecB).label(vecB_desc).lineWidth(0);
+    plot.legend().atOutsideBottom().displayHorizontal().displayExpandWidthBy(2);
+    sciplot::Figure figure = {{plot}};
+    sciplot::Canvas canvas = {{figure}};
+    // canvas.show();
+    string fileName = "./Plots/Plot_"+to_string(iteration)+".pdf"; 
+    canvas.save(fileName);
+        
 }

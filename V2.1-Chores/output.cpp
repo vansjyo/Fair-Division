@@ -1,5 +1,5 @@
 #include "output.h"
-#include <sciplot/sciplot.hpp>
+// #include <sciplot/sciplot.hpp>
 
 using namespace std;
 
@@ -59,6 +59,30 @@ void printAgentAllocationMBB(vector<AgentNodes> &agents, vector<ItemNodes> &item
     cout << endl << "----------------------------------- " << endl << endl;
 }
 
+void printAgentAllocationAndValuations(vector<AgentNodes> &agents, vector<ItemNodes> &items) {
+    cout << endl << "---------- Allocations: ----------- " << endl;
+	for(int i = 0; i < agents.size(); i++) {
+		agents[i].printAgentAllocation();
+	}
+    cout << " ------------- di(Xi): -------------- " << endl;
+	for(int i = 0; i < agents.size(); i++) {
+        cout << left << setw(nameWidth) << setfill(separator) << to_string(i)+":[ " << setprecision(11) << findBundleValuation(i, i, agents) << " ]  ";
+	}
+    cout << endl;
+
+    cout << " ------------- di(Xi - c_max): -------------- " << endl;
+    for(int i = 0; i < agents.size(); i++) {
+        double maxItemPrice = 0;
+        for(int j = 0; j < agents[i].allocationItems.size(); j++) {
+            int item = agents[i].allocationItems[j]->index;
+            maxItemPrice = fmax(maxItemPrice, agents[i].itemUtilityMap[j]);
+        }
+        cout << left << setw(nameWidth) << setfill(separator) << to_string(i)+":[ " << setprecision(11) << findBundleValuation(i, i, agents) - maxItemPrice << " ]  ";
+    }
+
+    cout << endl << "----------------------------------- " << endl << endl;
+}
+
 void printRevisedPrices(vector<ItemNodes> &items) {
     cout << "------------- P(j): -------------- " << endl;
 	for(int j = 0; j < items.size(); j++) {
@@ -109,23 +133,23 @@ void generateExcel(vector<AgentNodes> &agents, vector<ItemNodes> &items, ofstrea
 
 }
 
-void drawVerificationCurve(int iteration, vector<double> &vecA, string vecA_desc, vector<double> &vecB, string vecB_desc) {
-    // source: https://sciplot.github.io/
-    cout << "Printing the Graph...\n";
-    if(vecA.size()<2 || vecB.size()<2) return;
+// void drawVerificationCurve(int iteration, vector<double> &vecA, string vecA_desc, vector<double> &vecB, string vecB_desc) {
+//     // source: https://sciplot.github.io/
+//     cout << "Printing the Graph...\n";
+//     if(vecA.size()<2 || vecB.size()<2) return;
     
 
-    // plot the graph using these 2 y values
-    cout << vecA.size() << " " << vecB.size() << endl;
-    sciplot::Vec x = sciplot::linspace(1, vecA.size(), vecA.size()-1);
-    sciplot::Plot2D plot;
-    plot.drawCurve(x, vecA).label(vecA_desc).lineWidth(0);
-    plot.drawCurve(x, vecB).label(vecB_desc).lineWidth(0);
-    plot.legend().atOutsideBottom().displayHorizontal().displayExpandWidthBy(2);
-    sciplot::Figure figure = {{plot}};
-    sciplot::Canvas canvas = {{figure}};
-    // canvas.show();
-    string fileName = "./Plots/Plot_"+to_string(iteration)+".pdf"; 
-    canvas.save(fileName);
+//     // plot the graph using these 2 y values
+//     cout << vecA.size() << " " << vecB.size() << endl;
+//     sciplot::Vec x = sciplot::linspace(1, vecA.size(), vecA.size()-1);
+//     sciplot::Plot2D plot;
+//     plot.drawCurve(x, vecA).label(vecA_desc).lineWidth(0);
+//     plot.drawCurve(x, vecB).label(vecB_desc).lineWidth(0);
+//     plot.legend().atOutsideBottom().displayHorizontal().displayExpandWidthBy(2);
+//     sciplot::Figure figure = {{plot}};
+//     sciplot::Canvas canvas = {{figure}};
+//     // canvas.show();
+//     string fileName = "./Plots/Plot_"+to_string(iteration)+".pdf"; 
+//     canvas.save(fileName);
         
-}
+// }

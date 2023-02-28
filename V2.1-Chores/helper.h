@@ -80,6 +80,7 @@ class AgentNodes: public Nodes {
 // sample instantiation
 void generateSample(int seed, string distribution_type, vector<double> parameters, vector<AgentNodes> &agents, vector<ItemNodes> &items, ofstream &sampleFile);
 void populateInstance(vector<AgentNodes> &agents, vector<ItemNodes> &items, double &minBundlePrice);
+void populateInstanceWithOneEach(vector<AgentNodes> &agents, vector<ItemNodes> &items);
 
 // double comparisons
 bool doubleIsEqual(double v1, double v2, double epsilon);
@@ -93,6 +94,7 @@ double findEFMaxPlusMinValuation(vector<AgentNodes> &agents, vector<ItemNodes> &
 double findBundleValuation(int bundleAgent, int referenceAgent, vector<AgentNodes> &agents);
 double findEFMaxValuation(int bundleAgent, int referenceAgent, vector<AgentNodes> &agents);
 long double findNashEFMaxWelfare(vector<AgentNodes> &agents, vector<ItemNodes> &items);
+long double findNashWelfare(vector<AgentNodes> &agents, vector<ItemNodes> &items);
 double findMinEnvyDiff(vector<AgentNodes> &agents);
 
 // find agents
@@ -107,6 +109,7 @@ void updateAgentBundles(unordered_set<int> LSComponentAgents, unordered_set<int>
 void transferItem(int itemToTransfer, int transferFromAgent, int tranferToAgent, vector<AgentNodes> &agents, vector<ItemNodes> &items);
 
 // brute checks
+bool checkEF1BetweenAgents(int agentEnvying, int agentEnvied, vector<AgentNodes> &agents);
 bool is_PEF1_fPO(vector<AgentNodes> &agents, vector<ItemNodes> &items);
 bool is_EF1_fPO(vector<AgentNodes> &agents, vector<ItemNodes> &items);
 int checkMetricMonotonicityWhenSameAgentbecomesLS(string trend, int LS, unordered_map<int, long double> &valuationMap, long double metric, 

@@ -22,7 +22,7 @@ void generateSample(int seed, string distribution_type, vector<double> parameter
                     agents[i].index = i;
                 }
                 agents[i].itemUtilityMap.push_back(0);
-                int vij = ((init_values[j]==0)?(rng(rnd_gen)*10000000):(rng(rnd_gen)*200)) + init_values[j];                
+                int vij = ((init_values[j]==0)?(rng(rnd_gen)):(rng(rnd_gen)*200)) + init_values[j];                
                 sampleFile << vij << " ";
                 
                 agents[i].itemUtilityMap[j] = (double) vij;
@@ -61,7 +61,87 @@ void generateSample(int seed, string distribution_type, vector<double> parameter
         std::mt19937 rnd_gen{rd()};
         std::normal_distribution<> rng{parameters[0], parameters[1]};
         generate(rng, rnd_gen);
-    }  
+    }
+    else if (distribution_type=="bivalued") {
+        if(parameters.size()!=2) {
+            cout << "Less parameters \n";
+            return;
+        }
+        pcg32 rnd_gen(seed);
+        std::uniform_int_distribution<int> rng(0, 2);
+        int a = (int) parameters[0];
+        int b = (int) parameters[1];
+        for(int j = 0; j < items.size(); j++) {
+            ItemNodes *item = new ItemNodes();
+            for(int i = 0; i < agents.size(); i++) {
+                if(j==0) {
+                    AgentNodes *agent = new AgentNodes();
+                    agents[i] = *agent;
+                    agents[i].index = i;
+                }
+                agents[i].itemUtilityMap.push_back(0);
+                int vij = b;
+                int v = rng(rnd_gen);
+                if(v>0.5) {
+                    vij = a; 
+                }
+                sampleFile << vij << " ";
+                
+                agents[i].itemUtilityMap[j] = (double) vij;
+                items[j].price = fmin(items[j].price, agents[i].itemUtilityMap[j]);
+            }
+            sampleFile << endl;
+            items[j].index = j;
+        }
+        
+        // if all the items have the same disutility and if its=max(a,b), then lower down all to min(a,b)
+        for(int i = 0; i < agents.size(); i++) {
+            int minValue = numeric_limits<int>::max();
+            for(int k = 0; k < items.size(); k++) {
+                minValue = min((int)agents[i].itemUtilityMap[k], minValue);
+            }
+            if(minValue == max(a*10000, b*10000)) {
+                for(int k = 0; k < items.size(); k++) {
+                    agents[i].itemUtilityMap[k] = min(a*10000, b*10000);
+                }
+            }
+         }
+        sampleFile << endl;
+    }
+    else if (distribution_type=="trivalued") {
+        if(parameters.size()!=3) {
+            cout << "Less parameters \n";
+            return;
+        }
+        pcg32 rnd_gen(seed);
+        std::uniform_int_distribution<int> rng(0, 3);
+        for(int j = 0; j < items.size(); j++) {
+            ItemNodes *item = new ItemNodes();
+            for(int i = 0; i < agents.size(); i++) {
+                if(j==0) {
+                    AgentNodes *agent = new AgentNodes();
+                    agents[i] = *agent;
+                    agents[i].index = i;
+                }
+                agents[i].itemUtilityMap.push_back(0); 
+                int vij = (int) parameters[1]*10000; // if random number is 0 - a, 1 - b, 2 - c
+                int v = rng(rnd_gen);
+                if(v<0.5) {
+                    vij = (int) parameters[0]*10000; 
+                }
+                else if(v>1.5) {
+                    vij = (int) parameters[2]*10000; 
+                }
+                sampleFile << vij << " ";
+                
+                agents[i].itemUtilityMap[j] = (double) vij;
+                items[j].price = fmin(items[j].price, agents[i].itemUtilityMap[j]);
+            }
+            sampleFile << endl;
+            items[j].index = j;
+        }
+        sampleFile << endl;
+    }
     return;
 }
 
@@ -94,6 +174,18 @@ void populateInstance(vector<AgentNodes> &agents, vector<ItemNodes> &items, doub
             }   
             minBundlePrice = (j==m-1)?fmin(minBundlePrice, agents[i].bundlePrice):minBundlePrice;
         }
+    }
+}
+
+void populateInstanceWithOneEach(vector<AgentNodes> &agents, vector<ItemNodes> &items) {
+    // populate MBB ratio for all agents
+    int n = agents.size();
+    int m = items.size();
+
+    // populate MBB items, bundle price for every agent, an initial allocation and least spender's spending
+    for(int k = 0; k < m; k++) {
+        agents[k%n].allocationItems.push_back(&items[k]);
+        items[k].allocatedAgent = k%n;
     }
 }
     
@@ -177,6 +269,25 @@ double findEFMaxBundlePrice(vector<AgentNodes> &agents, vector<ItemNodes> &items
 
 // find EFMax Valuation of an agent 
 double findEFMaxValuation(int bundleAgent, int referenceAgent, vector<AgentNodes> &agents) {
+    // find global if bundleAgent=-1 or refernceAgent=-1
+    if(bundleAgent==-1 && referenceAgent==-1) {
+        double maxEFMax = 0;
+        int agent = -1;
+        for(int i = 0; i < agents.size(); i++) {
+            double EFMaxValuation = 0;
+            double maxItemValuation = 0;
+            for(int j = 0; j < agents[i].allocationItems.size(); j++) {
+                int item = agents[i].allocationItems[j]->index;
+                maxItemValuation = fmax(maxItemValuation, agents[i].itemUtilityMap[item]);
+            }
+            EFMaxValuation = findBundleValuation(i, i, agents) - maxItemValuation;
+            maxEFMax = fmax(maxEFMax, EFMaxValuation);
+            if(doubleIsEqual(maxEFMax, EFMaxValuation, EPS)==true) agent=i;
+        }
+        cout << "Agent: " << agent << " "; 
+        return maxEFMax;      
+    }
+
     double EFMaxValuation = 0;
     double maxItemValuation = 0;
     for(int j = 0; j < agents[bundleAgent].allocationItems.size(); j++) {
@@ -205,7 +316,7 @@ double findEFMaxPlusMinValuation(vector<AgentNodes> &agents, vector<ItemNodes> &
 
 // tranfer the item to the 2nd last agent from path violator
 void transferItem(int itemToTransfer, int transferFromAgent, int transferToAgent, vector<AgentNodes> &agents, vector<ItemNodes> &items) {
-    cout << "----> Transferring item to Agent " << transferToAgent << endl;
+    cout << "----> Transferring item " << itemToTransfer << " to Agent " << transferToAgent << endl;
     // add item to 2nd last agent
     cout << std::setprecision(13) << "Check: " << agents[transferToAgent].bundlePrice << " " << items[itemToTransfer].price <<  " " << agents[transferToAgent].bundlePrice+items[itemToTransfer].price << endl;
     agents[transferToAgent].allocationItems.push_back(&items[itemToTransfer]);
@@ -323,6 +434,15 @@ long double findNashEFMaxWelfare(vector<AgentNodes> &agents, vector<ItemNodes> &
     return nashWelfare;
 }
 
+long double findNashWelfare(vector<AgentNodes> &agents, vector<ItemNodes> &items) {
+    long double nashWelfare = 1;
+    for(int i = 0; i < agents.size(); i++) {
+        double valuation = findBundleValuation(i, i, agents);
+        nashWelfare*=valuation;
+    }
+    return nashWelfare;
+}
+
 int checkMetricMonotonicityWhenSameAgentbecomesLS(string trend, int LS, unordered_map<int, long double> &valuationMap, long double metric, 
                                                     vector<AgentNodes> &agents, vector<ItemNodes> &items) {
 
@@ -383,6 +503,24 @@ int checkMetricMonotonicityWhenSameAgentbecomesLS(string trend, int LS, unordere
     }
     
     return 1;
+}
+
+bool checkEF1BetweenAgents(int agentEnvying, int agentEnvied, vector<AgentNodes> &agents) {
+    // returns true if agentEnvying EF1 envies agentEnvied
+
+    double maxValuation = numeric_limits<double>::min();
+    for(ItemNodes* item:agents[agentEnvying].allocationItems) {
+        maxValuation = fmax(maxValuation, agents[agentEnvying].itemUtilityMap[item->index]);
+    }
+
+    if(findBundleValuation(agentEnvying, agentEnvying, agents) - maxValuation > findBundleValuation(agentEnvied, agentEnvying, agents) 
+        && doubleIsEqual(findBundleValuation(agentEnvying, agentEnvying, agents) - maxValuation, findBundleValuation(agentEnvied, agentEnvying, agents), EPS)==false ) {
+        // cout << "Failed for agent " <<  i << "-" << findBundleValuation(i, i, agents)-maxValuation << " and agent " << k  << "-" << findBundleValuation(k, i, agents) << endl;
+        return true;
+    }
+
+    return false;
+
 }
 
 // check if the pEF1 condition is satisfied for an allocation

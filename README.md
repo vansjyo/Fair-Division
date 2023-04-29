@@ -31,6 +31,4 @@ The code is a modified implementation of [[https://dl.acm.org/doi/10.1145/321916
 * Run the exexutive file generated - `./EF1_LP`
 * To log the console output to a log file, run `./EF1_LP | tee "/<fileLocation>/output.txt"`
 
-#### latest code: V2.1-Chores
-
 
